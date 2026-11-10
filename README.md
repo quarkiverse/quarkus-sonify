@@ -6,14 +6,43 @@
 Hear what your Quarkus application is doing in dev mode.
 
 Sonify plays a short sound on the machine that runs the application: one when an HTTP request arrives (by method), one
-when its response is sent (by status code), and any custom sound you ask for. It is a proof of concept, built against
-Quarkus 3.40.1.
+when its response is sent (by status code), and any custom sound you ask for.
 
 **Dev mode only.** Everything that makes a sound lives in a dev-only artifact that is never part of a production
 application. In production and in tests the API does nothing.
 
-> **This is just for fun.** It may well have no serious use case at all. It is not released anywhere, and nobody
-> should feel productive because of it.
+> **This is just for fun.** It may well have no serious use case at all. Nobody should feel productive
+> because of it.
+
+## Installation
+
+Add the extension to your Quarkus application. With Maven, add the following dependency to
+your `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>io.quarkiverse.sonify</groupId>
+    <artifactId>quarkus-sonify</artifactId>
+    <version>${quarkus-sonify.version}</version>
+</dependency>
+```
+
+With Gradle, add to your `build.gradle`:
+
+```groovy
+implementation("io.quarkiverse.sonify:quarkus-sonify:${quarkusSonifyVersion}")
+```
+
+or `build.gradle.kts`:
+
+```kotlin
+implementation("io.quarkiverse.sonify:quarkus-sonify:$quarkusSonifyVersion")
+```
+
+Replace the version placeholder with the latest release from
+[Maven Central](https://central.sonatype.com/artifact/io.quarkiverse.sonify/quarkus-sonify).
+
+There is nothing to remove before going to production: the extension only makes sounds in dev mode.
 
 ## Run the demo
 
