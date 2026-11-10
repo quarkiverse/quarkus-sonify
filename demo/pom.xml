@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.quarkiverse.sonify</groupId>
         <artifactId>quarkus-sonify-parent</artifactId>
-        <version>0.1.0</version>
+        <version>999-SNAPSHOT</version>
     </parent>
     <artifactId>quarkus-sonify-demo</artifactId>
     <name>Quarkus Sonify - Demo</name>
