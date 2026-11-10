@@ -45,7 +45,7 @@ There is nothing to remove before going to production: the extension only makes 
 
 ## Run the demo
 
-Requirements: JDK 17+, Maven 3.9+, and speakers or headphones on the machine that runs the application.
+Requirements: JDK 21+, Maven 3.9+, and speakers or headphones on the machine that runs the application.
 
 1. Build the extension and the demo:
 

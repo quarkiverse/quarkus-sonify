@@ -2,17 +2,18 @@ package io.quarkiverse.sonify.deployment;
 
 import io.quarkiverse.sonify.PlaySound;
 import io.quarkiverse.sonify.SonifyCustomizer;
+import io.quarkiverse.sonify.runtime.SonifyConfig;
 import io.quarkiverse.sonify.runtime.dev.DevSoundPlayer;
 import io.quarkiverse.sonify.runtime.dev.PlaySoundInterceptor;
-import io.quarkiverse.sonify.runtime.dev.SonifyRecorder;
+import io.quarkiverse.sonify.runtime.dev.SonifyRequestHandler;
+import io.quarkiverse.sonify.runtime.dev.SonifyStartup;
+import io.quarkus.arc.ArcContainer;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
-import io.quarkus.arc.deployment.BeanContainerBuildItem;
 import io.quarkus.arc.deployment.UnremovableBeanBuildItem;
+import io.quarkus.core.deployment.service.ServiceRegistrar;
 import io.quarkus.deployment.IsLocalDevelopment;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.BuildSteps;
-import io.quarkus.deployment.annotations.ExecutionTime;
-import io.quarkus.deployment.annotations.Record;
 import io.quarkus.vertx.http.deployment.FilterBuildItem;
 
 /**
@@ -26,14 +27,21 @@ class SonifyDevProcessor {
     private static final int FILTER_PRIORITY = 1000;
 
     /**
-     * @param beanContainer not used, but the recorder looks up the customizers of the application, so the container must
-     *        be ready first
+     * Configures the engine and plays the chime, on every start of the application. The service needs the container,
+     * because it looks up the customizers of the application.
      */
     @BuildStep
-    @Record(ExecutionTime.RUNTIME_INIT)
-    FilterBuildItem requests(SonifyRecorder recorder, BeanContainerBuildItem beanContainer) {
-        recorder.started();
-        return new FilterBuildItem(recorder.requestHandler(), FILTER_PRIORITY);
+    void startup(ServiceRegistrar serviceRegistrar) {
+        serviceRegistrar
+                .forService("io.quarkiverse.sonify.startup")
+                .require(SonifyConfig.class)
+                .require(ArcContainer.class)
+                .onStart((ctx, config, container) -> SonifyStartup.started(config, container));
+    }
+
+    @BuildStep
+    FilterBuildItem requests() {
+        return new FilterBuildItem(new SonifyRequestHandler(), FILTER_PRIORITY);
     }
 
     /** Nothing injects a customizer, so it would be removed as unused. Outside of dev mode, that is what happens. */
