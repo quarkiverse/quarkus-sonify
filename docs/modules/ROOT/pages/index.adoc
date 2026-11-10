@@ -1,0 +1,184 @@
+= Quarkus Sonify
+
+include::./includes/attributes.adoc[]
+
+Hear what your Quarkus application is doing in dev mode.
+
+Sonify plays a short sound on the machine that runs the application:
+
+* one when an HTTP request arrives, different for each HTTP method
+* one when its response is sent, different for each status code
+* any xref:custom-sounds.adoc[custom sound] you ask for, with an annotation or from code
+
+The sounds are synthesized in the JVM and played on the default audio output.
+There is no browser tab to keep open and no native dependency, and no admin rights are needed.
+A machine without an audio output gets one log line and silence.
+
+NOTE: This extension is just for fun. It may well have no serious use case at all.
+
+[#dev-mode-only]
+== Dev mode only
+
+Sonify only makes sounds in dev mode.
+
+Everything that makes a sound lives in a separate artifact, `quarkus-sonify-dev`, which Quarkus only adds to the application in dev mode.
+A production application contains the small API of the extension and nothing else: `@PlaySound` and `SoundPlayer` do nothing there, the `quarkus.sonify.*` properties are ignored, and the audio code is not packaged.
+The same goes for tests.
+
+So there is no need to remove the extension, its annotations or its configuration before going to production.
+
+== Installation
+
+To use this extension, add the `io.quarkiverse.sonify:quarkus-sonify` dependency to your build file.
+
+With Maven, add the following to your `pom.xml`:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+    <groupId>io.quarkiverse.sonify</groupId>
+    <artifactId>quarkus-sonify</artifactId>
+    <version>{project-version}</version>
+</dependency>
+----
+
+With Gradle, add the following to your `build.gradle`:
+
+[source,gradle,subs=attributes+]
+----
+implementation("io.quarkiverse.sonify:quarkus-sonify:{project-version}")
+----
+
+== Usage
+
+Start the application in dev mode:
+
+[source,shell]
+----
+./mvnw quarkus:dev
+----
+
+A three-note chime tells you that the application is up. You hear it again after every live reload.
+
+Then send a request:
+
+[source,shell]
+----
+curl -X DELETE http://localhost:8080/no-such-thing
+----
+
+You hear two falling taps for the `DELETE`, and a moment later a hollow note for the `404`.
+
+Requests to the `/q/` endpoints of Quarkus itself, such as the Dev UI, are not heard.
+
+== What you hear
+
+=== Requests
+
+Every HTTP method has its own motif of short taps:
+
+[cols="1,3"]
+|===
+|Method |Sound
+
+|`GET`
+|one tap
+
+|`POST`
+|two rising taps
+
+|`PUT`
+|the same tap twice
+
+|`PATCH`
+|the same tap three times
+
+|`DELETE`
+|two falling taps
+
+|`HEAD`
+|one very high tap
+
+|`OPTIONS`
+|one low tap
+
+|any other method
+|a click of noise
+|===
+
+=== Responses
+
+The class of the status code picks the kind of sound:
+
+[cols="1,3"]
+|===
+|Status |Sound
+
+|`1xx`
+|a short, quiet, high note
+
+|`2xx`
+|a clear note
+
+|`3xx`
+|a note that glides upwards
+
+|`4xx`
+|a hollow note, one octave lower
+
+|`5xx`
+|a thud with a falling low note
+|===
+
+The code within the class picks the pitch, so `200`, `201` and `204` are the same sound at different pitches.
+All pitches come from one pentatonic scale, so that sounds that overlap never clash.
+
+The sound of a response never starts sooner than 350 milliseconds after the sound of its request, so that the two are heard apart even when the response is immediate.
+A request that takes longer than that is not delayed.
+The gap is xref:config-reference.adoc[configurable].
+
+=== Themes
+
+A theme is a built-in set of sounds. There are two:
+
+`taps`:: The default: short and dry, easy to ignore.
+`bells`:: The same motifs and pitches, ringing longer.
+
+[source,properties]
+----
+quarkus.sonify.theme=bells
+----
+
+== Changing and silencing sounds
+
+Every sound can be replaced with a sound file or turned off, in `application.properties`:
+
+[source,properties]
+----
+# a WAV file instead of the built-in sound of 418
+quarkus.sonify.status."418"=sounds/whistle.wav
+# no sound for any server error
+quarkus.sonify.status."5xx"=off
+# no sound for OPTIONS requests: only their response is heard
+quarkus.sonify.method.options=off
+# everything a little quieter
+quarkus.sonify.volume=0.2
+----
+
+A status code wins over its class: with the configuration above, `quarkus.sonify.status."503"=sounds/alarm.wav` would still be heard.
+
+A sound file is a WAV file.
+It is looked up in the resources of the application first (`src/main/resources/sounds/whistle.wav` in the example), and then on the file system.
+At most its first two seconds are played.
+A file that cannot be read is reported in the log, and the built-in sound is used.
+
+To silence everything without removing the extension:
+
+[source,properties]
+----
+quarkus.sonify.enabled=false
+----
+
+The configuration is read again on every live reload, so a change is heard on the next request.
+
+See the xref:config-reference.adoc[configuration reference] for all properties, and xref:custom-sounds.adoc[Custom sounds] to play your own sounds and to define sounds in code.

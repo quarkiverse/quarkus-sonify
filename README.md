@@ -19,7 +19,7 @@ Requirements: JDK 17+, Maven 3.9+, and speakers or headphones on the machine tha
 1. Build the extension and the demo:
 
    ```sh
-   mvn install
+   mvn install -DskipTests
    ```
 
 2. Start the demo in dev mode. You should hear a three-note chime when it is up:
@@ -119,8 +119,28 @@ A `quarkus.sonify.*` property for the same sound wins over the customizer.
 | `runtime` | `quarkus-sonify` | the API and the configuration, no audio code |
 | `runtime-dev` | `quarkus-sonify-dev` | the synthesizer and its hooks, a conditional dev dependency |
 | `deployment` | `quarkus-sonify-deployment` | the build steps |
+| `integration-tests` | `quarkus-sonify-integration-tests` | checks that a packaged application is silent and has no audio code |
 | `demo` | `quarkus-sonify-demo` | a page with a link for every case |
+| `docs` | `quarkus-sonify-docs` | the documentation |
+
+## Documentation
+
+The documentation is in [`docs/`](docs/modules/ROOT/pages/index.adoc): getting started, custom sounds and the
+configuration reference.
+
+## Tests
+
+```sh
+mvn install
+```
+
+The tests are silent and need no audio output: they check that every event reaches the synthesizer in dev mode, and
+that nothing does anywhere else. What the sounds actually sound like is not tested.
 
 ## Status
 
-Experimental. There are no tests yet, and the sounds are tuned by guesswork.
+Experimental. The sounds are tuned by guesswork.
+
+## License
+
+[Apache License 2.0](LICENSE)

@@ -1,10 +1,10 @@
 package io.quarkiverse.sonify.deployment;
 
 import io.quarkiverse.sonify.PlaySound;
+import io.quarkiverse.sonify.SonifyCustomizer;
 import io.quarkiverse.sonify.runtime.dev.DevSoundPlayer;
 import io.quarkiverse.sonify.runtime.dev.PlaySoundInterceptor;
 import io.quarkiverse.sonify.runtime.dev.SonifyRecorder;
-import io.quarkiverse.sonify.SonifyCustomizer;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.BeanContainerBuildItem;
 import io.quarkus.arc.deployment.UnremovableBeanBuildItem;

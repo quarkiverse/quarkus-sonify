@@ -273,6 +273,11 @@ public final class SonifyEngine implements Runnable {
         }
     }
 
+    /** What the last call of {@link #configure} resulted in. */
+    Settings settings() {
+        return settings;
+    }
+
     public long requestCount() {
         return requests.get();
     }
@@ -441,7 +446,7 @@ public final class SonifyEngine implements Runnable {
     }
 
     /** The configuration as the engine needs it, replaced as a whole on every start of the application. */
-    private record Settings(boolean enabled, double volume, double responseGapMs, SonifyTheme theme,
+    record Settings(boolean enabled, double volume, double responseGapMs, SonifyTheme theme,
             Map<String, Clip> methods, Map<String, Clip> statuses, Map<String, Clip> customs) {
     }
 

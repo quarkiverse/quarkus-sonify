@@ -1,0 +1,181 @@
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time - All other configuration properties are overridable at runtime
+[.configuration-reference.searchable, cols="80,.^10,.^10"]
+|===
+
+h|[.header-title]##Configuration property##
+h|Type
+h|Default
+
+a| [[quarkus-sonify_quarkus-sonify-enabled]] [.property-path]##link:#quarkus-sonify_quarkus-sonify-enabled[`+++quarkus.sonify.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.sonify.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether sounds are played. Set it to `false` to silence everything without removing the extension.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SONIFY_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SONIFY_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++true+++`
+
+a| [[quarkus-sonify_quarkus-sonify-volume]] [.property-path]##link:#quarkus-sonify_quarkus-sonify-volume[`+++quarkus.sonify.volume+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.sonify.volume+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The overall volume, from `0` (silent) to `1` (loudest).
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SONIFY_VOLUME+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SONIFY_VOLUME+++`
+endif::add-copy-button-to-env-var[]
+--
+|double
+|`+++0.4+++`
+
+a| [[quarkus-sonify_quarkus-sonify-response-gap]] [.property-path]##link:#quarkus-sonify_quarkus-sonify-response-gap[`+++quarkus.sonify.response-gap+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.sonify.response-gap+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The shortest time between the start of the sound of a request and the start of the sound of its response, so that the two are heard apart even when the response is immediate. A request that takes longer than this is not delayed.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SONIFY_RESPONSE_GAP+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SONIFY_RESPONSE_GAP+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-quarkus-sonify_quarkus-sonify[icon:question-circle[title=More information about the Duration format]]
+|`+++350MS+++`
+
+a| [[quarkus-sonify_quarkus-sonify-theme]] [.property-path]##link:#quarkus-sonify_quarkus-sonify-theme[`+++quarkus.sonify.theme+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.sonify.theme+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The built-in set of sounds to use for everything that is not overridden.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SONIFY_THEME+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SONIFY_THEME+++`
+endif::add-copy-button-to-env-var[]
+--
+a|`taps`, `bells`
+|`+++taps+++`
+
+a| [[quarkus-sonify_quarkus-sonify-method-http-method]] [.property-path]##link:#quarkus-sonify_quarkus-sonify-method-http-method[`+++quarkus.sonify.method."http-method"+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.sonify.method."http-method"+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The sound of a request with this HTTP method, instead of the sound of the theme: the path of a WAV file, or `off`.
+
+A file is looked up in the resources of the application first, and then on the file system. At most its first two seconds are played.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SONIFY_METHOD__HTTP_METHOD_+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SONIFY_METHOD__HTTP_METHOD_+++`
+endif::add-copy-button-to-env-var[]
+--
+|Map<String,String>
+|
+
+a| [[quarkus-sonify_quarkus-sonify-status-status]] [.property-path]##link:#quarkus-sonify_quarkus-sonify-status-status[`+++quarkus.sonify.status."status"+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.sonify.status."status"+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The sound of a response with this status, instead of the sound of the theme: the path of a WAV file, or `off`.
+
+The key is either a status code (`"404"`) or a whole class of them (`"4xx"`). A status code wins over its class.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SONIFY_STATUS__STATUS_+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SONIFY_STATUS__STATUS_+++`
+endif::add-copy-button-to-env-var[]
+--
+|Map<String,String>
+|
+
+a| [[quarkus-sonify_quarkus-sonify-sound-sound-name]] [.property-path]##link:#quarkus-sonify_quarkus-sonify-sound-sound-name[`+++quarkus.sonify.sound."sound-name"+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.sonify.sound."sound-name"+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+The sound with this name, as used by `@PlaySound` and `SoundPlayer`: the path of a WAV file, or `off`. A name that is not configured gets a short sound of its own, derived from the name.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SONIFY_SOUND__SOUND_NAME_+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SONIFY_SOUND__SOUND_NAME_+++`
+endif::add-copy-button-to-env-var[]
+--
+|Map<String,String>
+|
+
+|===
+
+ifndef::no-duration-note[]
+[NOTE]
+[id=duration-note-anchor-quarkus-sonify_quarkus-sonify]
+.About the Duration format
+====
+To write duration values, use the standard `java.time.Duration` format.
+See the link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html#parse(java.lang.CharSequence)[Duration#parse() Java API documentation] for more information.
+
+You can also use a simplified format, starting with a number:
+
+* If the value is only a number, it represents time in seconds.
+* If the value is a number followed by `ms`, it represents time in milliseconds.
+
+In other cases, the simplified format is translated to the `java.time.Duration` format for parsing:
+
+* If the value is a number followed by `h`, `m`, or `s`, it is prefixed with `PT`.
+* If the value is a number followed by `d`, it is prefixed with `P`.
+====
+endif::no-duration-note[]

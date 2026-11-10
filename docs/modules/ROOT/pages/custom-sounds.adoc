@@ -1,0 +1,133 @@
+= Custom sounds
+
+include::./includes/attributes.adoc[]
+
+Besides requests and responses, the application can ask for a sound of its own, by name.
+
+Like everything else in Sonify, this xref:index.adoc#dev-mode-only[only happens in dev mode].
+In production and in tests the annotation and the injected object are there and do nothing.
+
+== Playing a sound
+
+=== With an annotation
+
+Annotate a method of a CDI bean with `@PlaySound`. The sound is played every time the method is called, before it runs:
+
+[source,java]
+----
+import jakarta.enterprise.context.ApplicationScoped;
+
+import io.quarkiverse.sonify.PlaySound;
+
+@ApplicationScoped
+public class OrderService {
+
+    @PlaySound("order-placed")
+    public Order place(Cart cart) {
+        // ...
+    }
+}
+----
+
+On a class, the annotation applies to all of its business methods.
+
+`@PlaySound` is an interceptor binding, so the usual rules of CDI interception apply: the class must be a CDI bean, and a private method is not intercepted.
+
+=== From code
+
+Inject a `SoundPlayer` to play a sound from anywhere:
+
+[source,java]
+----
+import jakarta.inject.Inject;
+
+import io.quarkiverse.sonify.SoundPlayer;
+
+public class AuditLog {
+
+    @Inject
+    SoundPlayer soundPlayer;
+
+    void record(Entry entry) {
+        soundPlayer.play("audit");
+        // ...
+    }
+}
+----
+
+`play` returns immediately: the sound is mixed on a thread of its own, and is dropped if too many sounds are already playing.
+
+== What a custom sound sounds like
+
+A name that is not configured gets a short sound of two notes, derived from the name: different names sound different, and the same name always sounds the same.
+
+To choose the sound, configure the name with a WAV file, or turn it off:
+
+[source,properties]
+----
+quarkus.sonify.sound."order-placed"=sounds/coin.wav
+quarkus.sonify.sound."audit"=off
+----
+
+== Defining sounds in code
+
+For anything a property cannot say, implement `SonifyCustomizer` in a CDI bean.
+It can define custom sounds, and replace the sounds of HTTP methods and status codes as well:
+
+[source,java]
+----
+import jakarta.enterprise.context.ApplicationScoped;
+
+import io.quarkiverse.sonify.SonifyCustomizer;
+import io.quarkiverse.sonify.SoundRegistry;
+import io.quarkiverse.sonify.Wave;
+
+@ApplicationScoped
+public class MySounds implements SonifyCustomizer {
+
+    @Override
+    public void customize(SoundRegistry sounds) {
+        // tones: wave, frequency in hertz, start in ms, duration in ms
+        sounds.sound("shipped")
+                .tone(Wave.SINE, 392, 0, 150)
+                .tone(Wave.SINE, 523, 120, 300);
+
+        // nothing at all
+        sounds.status(404).off();
+
+        // a sound file, for a whole class of status codes
+        sounds.statusClass(5).file("sounds/alarm.wav");
+
+        // audio that you compute yourself: mono samples between -1 and 1, and their rate
+        sounds.method("POST").samples(myPcm, 44100);
+    }
+}
+----
+
+A sound is defined in one of four ways:
+
+[cols="1,3"]
+|===
+|Method |Sound
+
+|`tone(wave, frequency, startMs, durationMs)`
+|One synthesized tone that fades out. Call it several times to build a sound of several tones. The waves are `SINE` (soft), `TRIANGLE` (hollow) and `NOISE` (a click or a hiss, without pitch).
+
+|`file(path)`
+|A WAV file, found the same way as a file in the configuration.
+
+|`samples(samples, sampleRate)`
+|Computed audio.
+
+|`off()`
+|Silence.
+|===
+
+A sound lasts two seconds at most: a tone must end within them, and files and samples are cut.
+
+The customizer is called when the application starts in dev mode, and again on every live reload.
+If several beans implement `SonifyCustomizer`, all of them are called.
+
+A `quarkus.sonify.*` property for the same sound wins over the customizer, so that a sound defined in code can still be changed or silenced from the configuration, for example in a local `.env` file.
+
+Outside of dev mode the customizer is never called, and Quarkus removes the bean as unused, unless the application itself injects it.
