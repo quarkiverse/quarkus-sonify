@@ -9,7 +9,7 @@
     </parent>
     <groupId>io.quarkiverse.sonify</groupId>
     <artifactId>quarkus-sonify-parent</artifactId>
-    <version>999-SNAPSHOT</version>
+    <version>0.1.0</version>
     <packaging>pom</packaging>
     <name>Quarkus Sonify - Parent</name>
     <description>Hear what your Quarkus application is doing in dev mode</description>
@@ -24,7 +24,8 @@
         <connection>scm:git:git@github.com:quarkiverse/quarkus-sonify.git</connection>
         <developerConnection>scm:git:git@github.com:quarkiverse/quarkus-sonify.git</developerConnection>
         <url>https://github.com/quarkiverse/quarkus-sonify</url>
-    </scm>
+      <tag>0.1.0</tag>
+  </scm>
 
     <properties>
         <compiler-plugin.version>3.16.0</compiler-plugin.version>
