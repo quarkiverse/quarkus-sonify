@@ -1,7 +1,6 @@
 # Quarkus Sonify
-<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
-<!-- ALL-CONTRIBUTORS-BADGE:END -->
+
+[![Version](https://img.shields.io/maven-central/v/io.quarkiverse.sonify/quarkus-sonify?logo=apache-maven&style=flat-square)](https://central.sonatype.com/artifact/io.quarkiverse.sonify/quarkus-sonify-parent) <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 Hear what your Quarkus application is doing in dev mode.
 
