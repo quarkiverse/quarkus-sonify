@@ -14,8 +14,10 @@ import io.quarkus.core.deployment.service.ServiceRegistrar;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.BuildSteps;
+import io.quarkus.deployment.builditem.ModuleExportBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.JniRuntimeAccessBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourcePatternsBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedPackageBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ServiceProviderBuildItem;
 import io.quarkus.vertx.http.deployment.FilterBuildItem;
@@ -65,6 +67,26 @@ class SonifyDevProcessor {
      * it finds the audio devices and the sound file readers through the service loader. Outside of a native build, these
      * build items are not used.
      */
+    /**
+     * MIDI sounds are rendered with the soundfont of the configuration through the {@code AudioSynthesizer} interface of
+     * the JDK, which its module does not export. Without it, MIDI is played with the default instruments of the JDK.
+     * The module name of the extension does not exist yet: Quarkus exports the package to the unnamed module of the
+     * application instead.
+     */
+    @BuildStep
+    ModuleExportBuildItem midiRendering() {
+        return new ModuleExportBuildItem("java.desktop", "io.quarkiverse.sonify.runtime.dev", "com.sun.media.sound");
+    }
+
+    /** The rendering of MIDI calls the synthesizer of the JDK through reflection. */
+    @BuildStep
+    ReflectiveClassBuildItem nativeMidiRendering() {
+        return ReflectiveClassBuildItem.builder("com.sun.media.sound.AudioSynthesizer", "com.sun.media.sound.SoftSynthesizer")
+                .methods()
+                .reason(getClass().getName())
+                .build();
+    }
+
     @BuildStep
     JniRuntimeAccessBuildItem nativeAudioCallbacks() {
         return new JniRuntimeAccessBuildItem(true, true, false,
@@ -84,18 +106,20 @@ class SonifyDevProcessor {
     }
 
     /**
-     * The sound files of the configuration are resources of the application, which a native executable only contains
-     * when they are listed. The configuration is read at run time and may name any file, so all the WAV files of the
-     * application are included.
+     * The sound files and the soundfont of the configuration are resources of the application, which a native executable
+     * only contains when they are listed. The configuration is read at run time and may name any file, so all the WAV
+     * and MIDI files and all the soundfonts of the application are included.
      */
     @BuildStep
     NativeImageResourcePatternsBuildItem nativeSoundFiles() {
-        return NativeImageResourcePatternsBuildItem.builder().includeGlob("**/*.wav").build();
+        return NativeImageResourcePatternsBuildItem.builder()
+                .includeGlobs("**/*.wav", "**/*.mid", "**/*.midi", "**/*.sf2", "**/*.dls")
+                .build();
     }
 
     /**
      * Quarkus does not let the native image find service providers by itself, so the providers of the JDK that play
-     * sounds, read sound files and convert their format are listed here. The MIDI providers are left out.
+     * sounds, read sound files, convert their format, and play MIDI are listed here.
      */
     @BuildStep
     void nativeAudioProviders(BuildProducer<ServiceProviderBuildItem> providers) {
@@ -113,5 +137,17 @@ class SonifyDevProcessor {
                 "com.sun.media.sound.AudioFloatFormatConverter",
                 "com.sun.media.sound.PCMtoPCMCodec",
                 "com.sun.media.sound.UlawCodec"));
+        // MIDI: the synthesizer, the readers of MIDI files and soundfonts, and MIDI rendered as audio
+        providers.produce(new ServiceProviderBuildItem("javax.sound.midi.spi.MidiDeviceProvider",
+                "com.sun.media.sound.SoftProvider"));
+        providers.produce(new ServiceProviderBuildItem("javax.sound.midi.spi.MidiFileReader",
+                "com.sun.media.sound.StandardMidiFileReader"));
+        providers.produce(new ServiceProviderBuildItem("javax.sound.midi.spi.MidiFileWriter",
+                "com.sun.media.sound.StandardMidiFileWriter"));
+        providers.produce(new ServiceProviderBuildItem("javax.sound.midi.spi.SoundbankReader",
+                "com.sun.media.sound.SF2SoundbankReader",
+                "com.sun.media.sound.DLSSoundbankReader"));
+        providers.produce(new ServiceProviderBuildItem("javax.sound.sampled.spi.AudioFileReader",
+                "com.sun.media.sound.SoftMidiAudioFileReader"));
     }
 }

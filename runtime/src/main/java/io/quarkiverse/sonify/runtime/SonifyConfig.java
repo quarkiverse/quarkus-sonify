@@ -2,6 +2,7 @@ package io.quarkiverse.sonify.runtime;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
 
 import io.quarkiverse.sonify.SonifyTheme;
 import io.quarkus.runtime.annotations.ConfigDocMapKey;
@@ -70,4 +71,11 @@ public interface SonifyConfig {
      */
     @ConfigDocMapKey("sound-name")
     Map<String, String> sound();
+
+    /**
+     * A soundfont, whose instruments play the MIDI sounds: MIDI files, and sequences defined in code. A SoundFont 2
+     * ({@code .sf2}) or DLS ({@code .dls}) file, looked up in the resources of the application first, and then on the
+     * file system. Without it, MIDI is played with the default instruments of the JDK.
+     */
+    Optional<String> soundfont();
 }

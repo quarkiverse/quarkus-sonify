@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- MIDI: a MIDI file works wherever a sound file does, and `SoundDefinition.midi(Sequence)` defines a
+  sound as notes in code (#13). MIDI is played by the synthesizer of the JDK.
+- `quarkus.sonify.soundfont`: a SoundFont 2 (`.sf2`) or DLS file whose instruments play the MIDI
+  sounds (#13). The extension asks Quarkus to export the internal JDK package this needs.
 - Sounds in production and in tests, off by default: an application opts in with a dependency on
   `quarkus-sonify-dev` and the build-time property `quarkus.sonify.production.enabled` or
   `quarkus.sonify.test.enabled`. Either one alone does nothing, and the build logs a warning.

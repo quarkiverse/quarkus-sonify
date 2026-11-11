@@ -21,6 +21,9 @@ public class ProductionResourceTest {
                 .body(is("io.quarkiverse.sonify.runtime.dev.DevSoundPlayer"));
         given().get("/production/customized").then().statusCode(200).body(is("true"));
         given().get("/production/sound-file").then().statusCode(200).body(is("true"));
+        // a WAV file, a MIDI file and a MIDI sequence from a customizer, the MIDI with the soundfont
+        given().get("/production/custom-sounds").then().statusCode(200).body(is("audit,from-code,from-file,order-placed"));
+        given().get("/production/soundfont").then().statusCode(200).body(is(String.valueOf(soundfontExpected())));
 
         long requests = counter("requests");
         long customs = counter("customs");
@@ -32,6 +35,14 @@ public class ProductionResourceTest {
         // the two requests, the read of the second counter, and this read itself
         assertThat(counter("requests") - requests).isEqualTo(4);
         assertThat(counter("customs") - customs).isEqualTo(2);
+    }
+
+    /**
+     * In tests, Quarkus exports the package of the JDK synthesizer that the soundfont needs from Java 25 on. The packaged
+     * application has it in the manifest of its jar, whatever the Java version.
+     */
+    protected boolean soundfontExpected() {
+        return Runtime.version().feature() >= 25;
     }
 
     private static long counter(String name) {

@@ -169,7 +169,7 @@ quarkus.sonify.volume=0.2
 
 A status code wins over its class: with the configuration above, `quarkus.sonify.status."503"=sounds/alarm.wav` would still be heard.
 
-A sound file is a WAV file.
+A sound file is a WAV file, or a xref:custom-sounds.adoc#midi[MIDI file].
 It is looked up in the resources of the application first (`src/main/resources/sounds/whistle.wav` in the example), and then on the file system.
 At most its first two seconds are played.
 A file that cannot be read is reported in the log, and the built-in sound is used.

@@ -1,5 +1,7 @@
 package io.quarkiverse.sonify.it.production;
 
+import java.util.TreeSet;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -51,6 +53,20 @@ public class ProductionResource {
     @Path("sound-file")
     public boolean soundFile() {
         return Thread.currentThread().getContextClassLoader().getResource("sounds/coin.wav") != null;
+    }
+
+    /** The custom sounds that could be read: MIDI included. */
+    @GET
+    @Path("custom-sounds")
+    public String customSounds() {
+        return String.join(",", new TreeSet<>(SonifyEngine.get().customSounds()));
+    }
+
+    /** Whether MIDI is played with the soundfont of the configuration. */
+    @GET
+    @Path("soundfont")
+    public boolean soundfont() {
+        return SonifyEngine.get().usesSoundfont();
     }
 
     /** The counters of the engine. Reading one is a request too, and it is counted. */

@@ -28,4 +28,35 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- what Quarkus does for the application, so that MIDI can be rendered with a soundfont -->
+                    <argLine>--add-exports java.desktop/com.sun.media.sound=ALL-UNNAMED</argLine>
+                    <excludes>
+                        <exclude>**/*NoAccessTest.java</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <!-- MIDI without that access: a JVM of its own -->
+                    <execution>
+                        <id>no-access</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <argLine combine.self="override">-Dsonify.test=no-access</argLine>
+                            <excludes combine.self="override" />
+                            <includes>
+                                <include>**/*NoAccessTest.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -1,5 +1,11 @@
 package io.quarkiverse.sonify.demo;
 
+import javax.sound.midi.InvalidMidiDataException;
+import javax.sound.midi.MidiEvent;
+import javax.sound.midi.Sequence;
+import javax.sound.midi.ShortMessage;
+import javax.sound.midi.Track;
+
 import jakarta.enterprise.context.ApplicationScoped;
 
 import io.quarkiverse.sonify.SonifyCustomizer;
@@ -34,7 +40,26 @@ public class DemoSounds implements SonifyCustomizer {
         }
         sounds.status(410).samples(sweep, 16000);
 
+        // MIDI notes: a chord on a vibraphone for 204 No Content
+        sounds.status(204).midi(vibraphoneChord());
+
         // application.properties also defines "order-placed", and a property wins: this line has no effect
         sounds.sound("order-placed").off();
+    }
+
+    private static Sequence vibraphoneChord() {
+        try {
+            Sequence sequence = new Sequence(Sequence.PPQ, 120);
+            Track track = sequence.createTrack();
+            // program 11 is the vibraphone in General MIDI
+            track.add(new MidiEvent(new ShortMessage(ShortMessage.PROGRAM_CHANGE, 0, 11, 0), 0));
+            for (int note : new int[] { 65, 69, 72 }) {
+                track.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_ON, 0, note, 90), 0));
+                track.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_OFF, 0, note, 0), 240));
+            }
+            return sequence;
+        } catch (InvalidMidiDataException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }
