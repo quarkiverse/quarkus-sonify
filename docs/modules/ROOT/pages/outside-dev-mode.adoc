@@ -55,7 +55,7 @@ quarkus.sonify.enabled=false
 Sonify works in a native executable too, with two things to know.
 
 The JDK plays sounds through a native library, which the executable loads when it starts playing.
-The build puts it next to the executable (`jsound.dll` on Windows, `libjsound.so` on Linux): ship it with the executable.
+When the executable needs it as a separate file, the build puts it next to the executable, such as `jsound.dll` on Windows: ship it with the executable.
 On Linux, that library needs ALSA on the machine: `libasound.so.2`, from the `alsa-lib` or `libasound2` package. Minimal container images do not have it.
 
 Without them, the application is silent, with one log line.
@@ -63,4 +63,4 @@ Without them, the application is silent, with one log line.
 Sound files that are resources of the application are included in the executable: Sonify includes all the WAV files of the application, since the configuration that names them is read at run time.
 Sound files on the file system work as in the JVM.
 
-NOTE: Native support was tested on Windows and Linux. macOS was not tested.
+NOTE: Native sounds were tested on Windows. On Linux, the build and the tests run in CI on a machine without an audio output. macOS was not tested.
