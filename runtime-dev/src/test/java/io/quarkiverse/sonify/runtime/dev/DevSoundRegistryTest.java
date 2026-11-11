@@ -12,7 +12,7 @@ import io.quarkiverse.sonify.runtime.dev.SonifyEngine.Tone;
 
 class DevSoundRegistryTest {
 
-    private final DevSoundRegistry registry = new DevSoundRegistry(DevSoundRegistryTest.class.getClassLoader());
+    private final DevSoundRegistry registry = new DevSoundRegistry(DevSoundRegistryTest.class.getClassLoader(), null);
 
     @Test
     void tonesAddUp() {

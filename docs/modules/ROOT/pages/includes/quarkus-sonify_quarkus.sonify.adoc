@@ -204,6 +204,27 @@ endif::add-copy-button-to-env-var[]
 |Map<String,String>
 |
 
+a| [[quarkus-sonify_quarkus-sonify-soundfont]] [.property-path]##link:#quarkus-sonify_quarkus-sonify-soundfont[`+++quarkus.sonify.soundfont+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.sonify.soundfont+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+A soundfont, whose instruments play the MIDI sounds: MIDI files, and sequences defined in code. A SoundFont 2 (`.sf2`) or DLS (`.dls`) file, looked up in the resources of the application first, and then on the file system. Without it, MIDI is played with the default instruments of the JDK.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SONIFY_SOUNDFONT+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SONIFY_SOUNDFONT+++`
+endif::add-copy-button-to-env-var[]
+--
+|string
+|
+
 |===
 
 ifndef::no-duration-note[]

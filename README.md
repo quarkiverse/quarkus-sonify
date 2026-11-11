@@ -93,11 +93,15 @@ quarkus.sonify.response-gap=350ms
 # taps or bells
 quarkus.sonify.theme=taps
 
-# a sound file (WAV) or "off", per HTTP method, per status code or class, and per custom sound
+# a sound file (WAV or MIDI) or "off", per HTTP method, per status code or class, and per custom sound
 quarkus.sonify.method.options=off
 quarkus.sonify.status."418"=sounds/whistle.wav
+quarkus.sonify.status."202"=sounds/arpeggio.mid
 quarkus.sonify.status."5xx"=off
 quarkus.sonify.sound."order-placed"=sounds/coin.wav
+
+# the instruments of the MIDI sounds: a SoundFont 2 (.sf2) or DLS file
+quarkus.sonify.soundfont=sounds/piano.sf2
 ```
 
 Files are looked up in the resources of the application first, then on the file system, and are cut at two seconds.
@@ -138,11 +142,16 @@ public class MySounds implements SonifyCustomizer {
         sounds.status(404).off();
         sounds.statusClass(5).file("sounds/alarm.wav");
         sounds.method("POST").samples(myPcm, 44100);
+        // notes, as a javax.sound.midi.Sequence
+        sounds.status(204).midi(chord);
     }
 }
 ```
 
 A `quarkus.sonify.*` property for the same sound wins over the customizer.
+
+MIDI is played by the synthesizer of the JDK, with its default instruments or the ones of
+`quarkus.sonify.soundfont`. See [MIDI](docs/modules/ROOT/pages/custom-sounds.adoc#midi).
 
 ## Production and tests
 

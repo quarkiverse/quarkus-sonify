@@ -29,4 +29,11 @@ public class CountsResource {
     public long customs() {
         return SonifyEngine.get().customCount();
     }
+
+    /** Whether MIDI is played with the soundfont of the configuration, which needs the JDK package exported. */
+    @GET
+    @Path("soundfont")
+    public boolean soundfont() {
+        return SonifyEngine.get().usesSoundfont();
+    }
 }

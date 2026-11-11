@@ -21,6 +21,9 @@ public class ProductionResourceTest {
                 .body(is("io.quarkiverse.sonify.runtime.dev.DevSoundPlayer"));
         given().get("/production/customized").then().statusCode(200).body(is("true"));
         given().get("/production/sound-file").then().statusCode(200).body(is("true"));
+        // a WAV file, a MIDI file and a MIDI sequence from a customizer, the MIDI with the soundfont
+        given().get("/production/custom-sounds").then().statusCode(200).body(is("audit,from-code,from-file,order-placed"));
+        given().get("/production/soundfont").then().statusCode(200).body(is("true"));
 
         long requests = counter("requests");
         long customs = counter("customs");

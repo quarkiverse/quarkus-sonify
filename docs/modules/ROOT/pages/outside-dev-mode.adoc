@@ -60,7 +60,7 @@ On Linux, that library needs ALSA on the machine: `libasound.so.2`, from the `al
 
 Without them, the application is silent, with one log line.
 
-Sound files that are resources of the application are included in the executable: Sonify includes all the WAV files of the application, since the configuration that names them is read at run time.
+Sound files and soundfonts that are resources of the application are included in the executable: Sonify includes all the WAV and MIDI files and all the soundfonts of the application, since the configuration that names them is read at run time.
 Sound files on the file system work as in the JVM.
 
 NOTE: Native sounds were tested on Windows. On Linux, the build and the tests run in CI on a machine without an audio output. macOS was not tested.

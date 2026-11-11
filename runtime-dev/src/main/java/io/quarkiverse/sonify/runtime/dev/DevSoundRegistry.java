@@ -8,6 +8,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import javax.sound.midi.Sequence;
+import javax.sound.midi.Soundbank;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
 import org.jboss.logging.Logger;
@@ -28,12 +30,17 @@ final class DevSoundRegistry implements SoundRegistry {
     private static final int MAX_MS = (int) (SonifyEngine.MAX_CLIP_SECONDS * 1000);
 
     private final ClassLoader resources;
+    private final Soundbank soundbank;
     private final Map<String, Clip> methods = new HashMap<>();
     private final Map<String, Clip> statuses = new HashMap<>();
     private final Map<String, Clip> customs = new HashMap<>();
 
-    DevSoundRegistry(ClassLoader resources) {
+    /**
+     * @param soundbank the instruments of the MIDI sounds, or {@code null} for the default instruments of the JDK
+     */
+    DevSoundRegistry(ClassLoader resources, Soundbank soundbank) {
         this.resources = resources;
+        this.soundbank = soundbank;
     }
 
     Map<String, Clip> methods() {
@@ -97,11 +104,23 @@ final class DevSoundRegistry implements SoundRegistry {
         public void file(String path) {
             Objects.requireNonNull(path, "path");
             try {
-                Clip clip = Clip.of(SonifyEngine.load(path, resources));
+                Clip clip = Clip.of(SonifyEngine.load(path, resources, soundbank));
                 tones.clear();
                 target.put(key, clip);
             } catch (IOException | UnsupportedAudioFileException | IllegalArgumentException e) {
                 LOG.warnf("Sonify ignores the file of the sound '%s': cannot read '%s' (%s)", key, path, e.getMessage());
+            }
+        }
+
+        @Override
+        public void midi(Sequence sequence) {
+            Objects.requireNonNull(sequence, "sequence");
+            try {
+                Clip clip = Clip.of(SonifyEngine.midi(sequence, soundbank));
+                tones.clear();
+                target.put(key, clip);
+            } catch (IOException | IllegalArgumentException e) {
+                LOG.warnf("Sonify ignores the MIDI sequence of the sound '%s' (%s)", key, e.getMessage());
             }
         }
 

@@ -3,6 +3,7 @@ package io.quarkiverse.sonify.runtime.dev;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import io.quarkiverse.sonify.SonifyTheme;
 import io.quarkiverse.sonify.runtime.SonifyConfig;
@@ -14,6 +15,7 @@ import io.quarkiverse.sonify.runtime.SonifyConfig;
 final class TestConfig implements SonifyConfig {
 
     double volume = 0.4;
+    String soundfont;
     final Map<String, String> method = new HashMap<>();
     final Map<String, String> status = new HashMap<>();
     final Map<String, String> sound = new HashMap<>();
@@ -51,5 +53,10 @@ final class TestConfig implements SonifyConfig {
     @Override
     public Map<String, String> sound() {
         return sound;
+    }
+
+    @Override
+    public Optional<String> soundfont() {
+        return Optional.ofNullable(soundfont);
     }
 }

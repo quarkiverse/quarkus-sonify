@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -11,11 +12,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
+import javax.sound.midi.InvalidMidiDataException;
+import javax.sound.midi.MidiSystem;
+import javax.sound.midi.MidiUnavailableException;
+import javax.sound.midi.Sequence;
+import javax.sound.midi.Soundbank;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -61,6 +69,10 @@ public final class SonifyEngine implements Runnable {
     private final AtomicLong customs = new AtomicLong();
     private boolean started;
     private volatile boolean unavailable;
+    /** The soundfont of the configuration, kept across restarts while its file does not change. */
+    private String soundfontKey;
+    private Soundbank soundfont;
+    private volatile boolean usesSoundfont;
     private volatile Settings settings = new Settings(true, 0.4, 350, SonifyTheme.TAPS, Map.of(), Map.of(), Map.of());
 
     private SonifyEngine() {
@@ -76,8 +88,12 @@ public final class SonifyEngine implements Runnable {
      *
      * @param resources the class loader of the application, to find the sound files
      */
-    public void configure(SonifyConfig config, ClassLoader resources, List<SonifyCustomizer> customizers) {
-        DevSoundRegistry registry = new DevSoundRegistry(resources);
+    public synchronized void configure(SonifyConfig config, ClassLoader resources,
+            List<SonifyCustomizer> customizers) {
+        // sound files, soundfonts and MIDI are read here, before anything plays
+        ensureJavaHome();
+        Soundbank soundbank = soundfont(config.soundfont(), resources);
+        DevSoundRegistry registry = new DevSoundRegistry(resources, soundbank);
         for (SonifyCustomizer customizer : customizers) {
             try {
                 customizer.customize(registry);
@@ -90,14 +106,68 @@ public final class SonifyEngine implements Runnable {
                 config.responseGap().toMillis(),
                 config.theme(),
                 merge(registry.methods(),
-                        clips("method", config.method(), resources, key -> key.toUpperCase(Locale.ROOT), key -> true)),
+                        clips("method", config.method(), resources, soundbank, key -> key.toUpperCase(Locale.ROOT),
+                                key -> true)),
                 merge(registry.statuses(),
-                        clips("status", config.status(), resources, key -> key.toLowerCase(Locale.ROOT),
+                        clips("status", config.status(), resources, soundbank, key -> key.toLowerCase(Locale.ROOT),
                                 key -> key.matches("[1-5](xx|\\d\\d)"))),
-                merge(registry.customs(), clips("sound", config.sound(), resources, key -> key, key -> true)));
+                merge(registry.customs(), clips("sound", config.sound(), resources, soundbank, key -> key, key -> true)));
         LOG.debugf("Sonify is configured by %d customizers and the configuration: methods %s, statuses %s, sounds %s",
                 customizers.size(), settings.methods().keySet(), settings.statuses().keySet(),
                 settings.customs().keySet());
+    }
+
+    /**
+     * Reads the soundfont of the configuration, or keeps the one already read when its file did not change: a soundfont
+     * can be large, and the application restarts on every live reload.
+     *
+     * @return the soundfont, or {@code null} to play MIDI with the default instruments of the JDK
+     */
+    private Soundbank soundfont(Optional<String> configured, ClassLoader resources) {
+        usesSoundfont = false;
+        if (configured.isEmpty() || configured.get().isBlank()) {
+            return null;
+        }
+        String path = configured.get().trim();
+        try {
+            URL url = resources.getResource(path);
+            if (url == null) {
+                if (!Files.isRegularFile(Path.of(path))) {
+                    throw new IOException("not found in the resources of the application or on the file system");
+                }
+                url = Path.of(path).toUri().toURL();
+            }
+            URLConnection connection = url.openConnection();
+            String key = url + "@" + connection.getLastModified() + "/" + connection.getContentLengthLong();
+            if (!key.equals(soundfontKey)) {
+                soundfont = MidiSystem.getSoundbank(url);
+                soundfontKey = key;
+            }
+        } catch (IOException | InvalidMidiDataException | RuntimeException e) {
+            LOG.warnf("Sonify ignores quarkus.sonify.soundfont: cannot read the soundfont '%s' (%s)", path,
+                    e.getMessage());
+            return null;
+        }
+        if (!MidiRenderer.canUseSoundbanks()) {
+            LOG.warnf("Sonify plays MIDI with the default instruments of the JDK, not with the soundfont '%s': the JDK "
+                    + "does not let Sonify render it (the package com.sun.media.sound of the module java.desktop is "
+                    + "not exported to it)", path);
+            return null;
+        }
+        usesSoundfont = true;
+        LOG.debugf("Sonify plays MIDI with the soundfont %s (%d instruments)", soundfont.getName(),
+                soundfont.getInstruments().length);
+        return soundfont;
+    }
+
+    /** The names of the custom sounds that are defined, by the configuration or by a customizer, and could be read. */
+    public Set<String> customSounds() {
+        return settings.customs().keySet();
+    }
+
+    /** Whether MIDI sounds are played with the soundfont of the configuration. */
+    public boolean usesSoundfont() {
+        return usesSoundfont;
     }
 
     /** What the configuration says wins over what the customizers say. */
@@ -328,7 +398,7 @@ public final class SonifyEngine implements Runnable {
     }
 
     /**
-     * The audio code of the JDK reads its optional {@code conf/sound.properties} from {@code java.home}, and fails when
+     * The sound code of the JDK reads its optional {@code conf/sound.properties} from {@code java.home}, and fails when
      * the property is not set at all, which is the case in a native executable. The folder of the executable is as good
      * a home as any: a missing file is ignored.
      */
@@ -373,7 +443,7 @@ public final class SonifyEngine implements Runnable {
     }
 
     private static Map<String, Clip> clips(String kind, Map<String, String> configured, ClassLoader resources,
-            UnaryOperator<String> normalize, Predicate<String> valid) {
+            Soundbank soundbank, UnaryOperator<String> normalize, Predicate<String> valid) {
         Map<String, Clip> clips = new HashMap<>();
         for (Map.Entry<String, String> entry : configured.entrySet()) {
             String key = normalize.apply(entry.getKey().trim());
@@ -385,7 +455,7 @@ public final class SonifyEngine implements Runnable {
                 clips.put(key, Clip.OFF);
             } else {
                 try {
-                    clips.put(key, Clip.of(load(value, resources)));
+                    clips.put(key, Clip.of(load(value, resources, soundbank)));
                 } catch (IOException | UnsupportedAudioFileException | IllegalArgumentException e) {
                     LOG.warnf("Sonify ignores %s: cannot read the sound file '%s' (%s)", property, value, e.getMessage());
                 }
@@ -394,11 +464,19 @@ public final class SonifyEngine implements Runnable {
         return clips;
     }
 
+    static float[] load(String path, ClassLoader resources) throws IOException, UnsupportedAudioFileException {
+        return load(path, resources, null);
+    }
+
     /**
      * Reads a sound file as mono samples at the rate of the engine, cut to {@link #MAX_CLIP_SECONDS}. The file is
-     * looked up in the resources of the application first, and then on the file system.
+     * looked up in the resources of the application first, and then on the file system. A MIDI file is played with the
+     * given soundbank.
+     *
+     * @param soundbank the instruments for a MIDI file, or {@code null} for the default instruments of the JDK
      */
-    static float[] load(String path, ClassLoader resources) throws IOException, UnsupportedAudioFileException {
+    static float[] load(String path, ClassLoader resources, Soundbank soundbank)
+            throws IOException, UnsupportedAudioFileException {
         URL resource = resources.getResource(path);
         InputStream stream;
         if (resource != null) {
@@ -408,7 +486,13 @@ public final class SonifyEngine implements Runnable {
         } else {
             throw new IOException("not found in the resources of the application or on the file system");
         }
-        try (AudioInputStream source = AudioSystem.getAudioInputStream(new BufferedInputStream(stream))) {
+        BufferedInputStream buffered = new BufferedInputStream(stream);
+        if (isMidi(buffered)) {
+            try (buffered) {
+                return midi(MidiRenderer.sequence(buffered), soundbank);
+            }
+        }
+        try (AudioInputStream source = AudioSystem.getAudioInputStream(buffered)) {
             AudioFormat format = source.getFormat();
             int channels = format.getChannels();
             AudioFormat pcm = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, format.getSampleRate(), 16, channels,
@@ -429,6 +513,27 @@ public final class SonifyEngine implements Runnable {
                 return resample(mono, format.getSampleRate());
             }
         }
+    }
+
+    /** Renders MIDI notes as mono samples at the rate of the engine, cut to {@link #MAX_CLIP_SECONDS}. */
+    static float[] midi(Sequence sequence, Soundbank soundbank) throws IOException {
+        try {
+            MidiRenderer.Audio audio = MidiRenderer.render(sequence, soundbank, MAX_CLIP_SECONDS);
+            if (audio.mono().length == 0) {
+                throw new IOException("the MIDI sequence is empty");
+            }
+            return resample(audio.mono(), audio.sampleRate());
+        } catch (MidiUnavailableException e) {
+            throw new IOException("no MIDI synthesizer is available: " + e.getMessage(), e);
+        }
+    }
+
+    /** A standard MIDI file starts with the four bytes "MThd". */
+    private static boolean isMidi(BufferedInputStream stream) throws IOException {
+        stream.mark(4);
+        byte[] header = stream.readNBytes(4);
+        stream.reset();
+        return header.length == 4 && header[0] == 'M' && header[1] == 'T' && header[2] == 'h' && header[3] == 'd';
     }
 
     static float[] resample(double[] mono, float sourceRate) {

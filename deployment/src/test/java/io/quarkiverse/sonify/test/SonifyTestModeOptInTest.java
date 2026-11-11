@@ -24,8 +24,10 @@ public class SonifyTestModeOptInTest {
     static final QuarkusExtensionTest test = new QuarkusExtensionTest()
             .setArchiveProducer(() -> ShrinkWrap.create(JavaArchive.class)
                     .addClasses(SoundsResource.class, OrderService.class, TestSounds.class, CountsResource.class,
-                            Counts.class))
+                            Counts.class)
+                    .addAsResource("square.sf2"))
             .overrideConfigKey("quarkus.sonify.test.enabled", "true")
+            .overrideConfigKey("quarkus.sonify.soundfont", "square.sf2")
             // silent: every event still reaches the engine, which counts it
             .overrideConfigKey("quarkus.sonify.enabled", "false");
 
@@ -34,6 +36,8 @@ public class SonifyTestModeOptInTest {
         RestAssured.get("/player").then().statusCode(200)
                 .body(is("io.quarkiverse.sonify.runtime.dev.DevSoundPlayer"));
         RestAssured.get("/customized").then().statusCode(200).body(is("true"));
+        // Quarkus exports the package of the JDK synthesizer to the application in tests too
+        RestAssured.get("/q/sonify-test/soundfont").then().statusCode(200).body(is("true"));
 
         long requests = Counts.of("requests");
         long responses = Counts.of("responses");

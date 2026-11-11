@@ -42,6 +42,8 @@
   <h2>Configured in application.properties</h2>
   <ul>
     <li><strong>418</strong> plays a sound file (<code>sounds/whistle.wav</code>) instead of the built-in 4xx note.</li>
+    <li><strong>202</strong> plays a MIDI file (<code>sounds/arpeggio.mid</code>). Uncomment
+      <code>quarkus.sonify.soundfont</code> to hear it, and 204, with the instrument of a soundfont.</li>
     <li><strong>OPTIONS</strong> requests are <code>off</code>: only their response is heard.</li>
   </ul>
 
@@ -60,6 +62,7 @@
   <ul>
     <li><strong>409</strong> is two flat knocks made of synthesized tones.</li>
     <li><strong>410</strong> is computed audio: a short downward sweep.</li>
+    <li><strong>204</strong> is MIDI notes: a chord on a vibraphone.</li>
     <li>The customizer also turns <code>order-placed</code> off, but the property in
       <code>application.properties</code> wins, so the coin still plays.</li>
   </ul>
