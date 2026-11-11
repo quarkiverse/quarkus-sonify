@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Notes written as text, such as `notes:[tempo=140] C5/8 E5/8 G5+C6/4.`, in the configuration and
+  with `SoundDefinition.notes(String)` (#14). They are played as MIDI, with the soundfont if there
+  is one.
+- `quarkus.sonify.max-sound-length`: how long a sound may last, 2 seconds by default and up to 10
+  (#14). A sound that is still playing is not started again, so long sounds do not pile up.
 - MIDI: a MIDI file works wherever a sound file does, and `SoundDefinition.midi(Sequence)` defines a
   sound as notes in code (#13). MIDI is played by the synthesizer of the JDK.
 - `quarkus.sonify.soundfont`: a SoundFont 2 (`.sf2`) or DLS file whose instruments play the MIDI

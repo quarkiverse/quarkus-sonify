@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Objects;
 
 import javax.sound.midi.Sequence;
-import javax.sound.midi.Soundbank;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
 import org.jboss.logging.Logger;
@@ -27,20 +26,13 @@ final class DevSoundRegistry implements SoundRegistry {
 
     private static final Logger LOG = Logger.getLogger(DevSoundRegistry.class);
 
-    private static final int MAX_MS = (int) (SonifyEngine.MAX_CLIP_SECONDS * 1000);
-
-    private final ClassLoader resources;
-    private final Soundbank soundbank;
+    private final SonifyEngine.Sources sources;
     private final Map<String, Clip> methods = new HashMap<>();
     private final Map<String, Clip> statuses = new HashMap<>();
     private final Map<String, Clip> customs = new HashMap<>();
 
-    /**
-     * @param soundbank the instruments of the MIDI sounds, or {@code null} for the default instruments of the JDK
-     */
-    DevSoundRegistry(ClassLoader resources, Soundbank soundbank) {
-        this.resources = resources;
-        this.soundbank = soundbank;
+    DevSoundRegistry(SonifyEngine.Sources sources) {
+        this.sources = sources;
     }
 
     Map<String, Clip> methods() {
@@ -104,7 +96,7 @@ final class DevSoundRegistry implements SoundRegistry {
         public void file(String path) {
             Objects.requireNonNull(path, "path");
             try {
-                Clip clip = Clip.of(SonifyEngine.load(path, resources, soundbank));
+                Clip clip = Clip.of(SonifyEngine.load(path, sources));
                 tones.clear();
                 target.put(key, clip);
             } catch (IOException | UnsupportedAudioFileException | IllegalArgumentException e) {
@@ -116,11 +108,23 @@ final class DevSoundRegistry implements SoundRegistry {
         public void midi(Sequence sequence) {
             Objects.requireNonNull(sequence, "sequence");
             try {
-                Clip clip = Clip.of(SonifyEngine.midi(sequence, soundbank));
+                Clip clip = Clip.of(SonifyEngine.midi(sequence, sources));
                 tones.clear();
                 target.put(key, clip);
             } catch (IOException | IllegalArgumentException e) {
                 LOG.warnf("Sonify ignores the MIDI sequence of the sound '%s' (%s)", key, e.getMessage());
+            }
+        }
+
+        @Override
+        public void notes(String notes) {
+            Sequence sequence = Notes.parse(notes);
+            try {
+                Clip clip = Clip.of(SonifyEngine.midi(sequence, sources));
+                tones.clear();
+                target.put(key, clip);
+            } catch (IOException e) {
+                LOG.warnf("Sonify ignores the notes of the sound '%s' (%s)", key, e.getMessage());
             }
         }
 
@@ -130,7 +134,7 @@ final class DevSoundRegistry implements SoundRegistry {
             if (!(sampleRate > 0)) {
                 throw new IllegalArgumentException("Not a positive sample rate: " + sampleRate);
             }
-            int length = (int) Math.min(samples.length, sampleRate * SonifyEngine.MAX_CLIP_SECONDS);
+            int length = (int) Math.min(samples.length, sampleRate * sources.maxSeconds());
             double[] mono = new double[length];
             for (int i = 0; i < length; i++) {
                 mono[i] = Math.max(-1, Math.min(1, samples[i]));
@@ -145,9 +149,10 @@ final class DevSoundRegistry implements SoundRegistry {
             if (wave != Wave.NOISE && !(frequency >= 20 && frequency <= 20000)) {
                 throw new IllegalArgumentException("Not a frequency between 20 and 20000 Hz: " + frequency);
             }
-            if (startMs < 0 || durationMs < 1 || startMs + durationMs > MAX_MS) {
+            int maxMs = (int) (sources.maxSeconds() * 1000);
+            if (startMs < 0 || durationMs < 1 || startMs + durationMs > maxMs) {
                 throw new IllegalArgumentException("A tone must start at 0 ms or later, last 1 ms or more and end within "
-                        + MAX_MS + " ms: start " + startMs + " ms, duration " + durationMs + " ms");
+                        + maxMs + " ms: start " + startMs + " ms, duration " + durationMs + " ms");
             }
             tones.add(new Tone(wave, frequency, startMs, durationMs));
             target.put(key, new Clip(null, List.copyOf(tones)));

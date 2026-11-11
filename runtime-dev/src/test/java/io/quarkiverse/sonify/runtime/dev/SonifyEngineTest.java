@@ -61,7 +61,7 @@ class SonifyEngineTest {
 
         float[] samples = SonifyEngine.load(file.toString(), RESOURCES);
 
-        assertThat(samples.length).isCloseTo((int) (44100 * SonifyEngine.MAX_CLIP_SECONDS), within(2));
+        assertThat(samples.length).isCloseTo((int) (44100 * SonifyEngine.DEFAULT_MAX_SECONDS), within(2));
     }
 
     @Test

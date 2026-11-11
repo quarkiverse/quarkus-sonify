@@ -16,6 +16,7 @@ final class TestConfig implements SonifyConfig {
 
     double volume = 0.4;
     String soundfont;
+    Duration maxSoundLength = Duration.ofSeconds(2);
     final Map<String, String> method = new HashMap<>();
     final Map<String, String> status = new HashMap<>();
     final Map<String, String> sound = new HashMap<>();
@@ -33,6 +34,11 @@ final class TestConfig implements SonifyConfig {
     @Override
     public Duration responseGap() {
         return Duration.ofMillis(350);
+    }
+
+    @Override
+    public Duration maxSoundLength() {
+        return maxSoundLength;
     }
 
     @Override

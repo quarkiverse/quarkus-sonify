@@ -12,7 +12,8 @@ import io.quarkiverse.sonify.runtime.dev.SonifyEngine.Tone;
 
 class DevSoundRegistryTest {
 
-    private final DevSoundRegistry registry = new DevSoundRegistry(DevSoundRegistryTest.class.getClassLoader(), null);
+    private final DevSoundRegistry registry = new DevSoundRegistry(
+            SonifyEngine.Sources.of(DevSoundRegistryTest.class.getClassLoader()));
 
     @Test
     void tonesAddUp() {
@@ -55,7 +56,7 @@ class DevSoundRegistryTest {
         registry.sound("computed").samples(threeSeconds, 8000);
 
         float[] samples = registry.customs().get("computed").samples();
-        assertThat(samples.length).isCloseTo((int) (44100 * SonifyEngine.MAX_CLIP_SECONDS), within(2));
+        assertThat(samples.length).isCloseTo((int) (44100 * SonifyEngine.DEFAULT_MAX_SECONDS), within(2));
         assertThat(samples[1000]).isLessThanOrEqualTo(1f);
     }
 

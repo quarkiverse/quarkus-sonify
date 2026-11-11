@@ -7,6 +7,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,8 +55,9 @@ public final class SonifyEngine implements Runnable {
     private static final int MAX_VOICES = 32;
     private static final int ATTACK_SAMPLES = 90;
 
-    /** A sound file is cut after this long, so that a long file cannot pile up under load. */
-    static final double MAX_CLIP_SECONDS = 2;
+    /** How long a sound may last by default, and at most: see {@code quarkus.sonify.max-sound-length}. */
+    static final double DEFAULT_MAX_SECONDS = 2;
+    static final double LONGEST_SECONDS = 10;
     private static final double CLIP_GAIN = 0.8;
 
     /** C major pentatonic from C4 upwards: overlapping notes never clash. */
@@ -92,8 +94,9 @@ public final class SonifyEngine implements Runnable {
             List<SonifyCustomizer> customizers) {
         // sound files, soundfonts and MIDI are read here, before anything plays
         ensureJavaHome();
-        Soundbank soundbank = soundfont(config.soundfont(), resources);
-        DevSoundRegistry registry = new DevSoundRegistry(resources, soundbank);
+        Sources sources = new Sources(resources, soundfont(config.soundfont(), resources),
+                maxSeconds(config.maxSoundLength()));
+        DevSoundRegistry registry = new DevSoundRegistry(sources);
         for (SonifyCustomizer customizer : customizers) {
             try {
                 customizer.customize(registry);
@@ -106,12 +109,12 @@ public final class SonifyEngine implements Runnable {
                 config.responseGap().toMillis(),
                 config.theme(),
                 merge(registry.methods(),
-                        clips("method", config.method(), resources, soundbank, key -> key.toUpperCase(Locale.ROOT),
+                        clips("method", config.method(), sources, key -> key.toUpperCase(Locale.ROOT),
                                 key -> true)),
                 merge(registry.statuses(),
-                        clips("status", config.status(), resources, soundbank, key -> key.toLowerCase(Locale.ROOT),
+                        clips("status", config.status(), sources, key -> key.toLowerCase(Locale.ROOT),
                                 key -> key.matches("[1-5](xx|\\d\\d)"))),
-                merge(registry.customs(), clips("sound", config.sound(), resources, soundbank, key -> key, key -> true)));
+                merge(registry.customs(), clips("sound", config.sound(), sources, key -> key, key -> true)));
         LOG.debugf("Sonify is configured by %d customizers and the configuration: methods %s, statuses %s, sounds %s",
                 customizers.size(), settings.methods().keySet(), settings.statuses().keySet(),
                 settings.customs().keySet());
@@ -163,6 +166,17 @@ public final class SonifyEngine implements Runnable {
     /** The names of the custom sounds that are defined, by the configuration or by a customizer, and could be read. */
     public Set<String> customSounds() {
         return settings.customs().keySet();
+    }
+
+    private static double maxSeconds(Duration configured) {
+        double seconds = configured.toMillis() / 1000.0;
+        if (seconds < 0.1 || seconds > LONGEST_SECONDS) {
+            double clamped = Math.max(0.1, Math.min(LONGEST_SECONDS, seconds));
+            LOG.warnf("Sonify uses a quarkus.sonify.max-sound-length of %.1f s instead of %s: it must be between 0.1 and "
+                    + "%.0f seconds", clamped, configured, LONGEST_SECONDS);
+            return clamped;
+        }
+        return seconds;
     }
 
     /** Whether MIDI sounds are played with the soundfont of the configuration. */
@@ -334,12 +348,15 @@ public final class SonifyEngine implements Runnable {
 
     /** Plays what the application defined, as it is: the theme does not change it. */
     private void play(Clip clip, double delayMs) {
+        Playing group = new Playing(clip);
         if (clip.samples() != null) {
-            play(new ClipVoice(clip.samples(), millis(delayMs)));
+            play(new ClipVoice(clip.samples(), millis(delayMs), group));
         }
         for (Tone tone : clip.tones()) {
-            play(new SynthVoice(tone.wave(), tone.frequency(), 0.45, tone.durationMs(), millis(delayMs + tone.startMs()),
-                    1));
+            SynthVoice voice = new SynthVoice(tone.wave(), tone.frequency(), 0.45, tone.durationMs(),
+                    millis(delayMs + tone.startMs()), 1);
+            voice.group = group;
+            play(voice);
         }
     }
 
@@ -417,12 +434,12 @@ public final class SonifyEngine implements Runnable {
         byte[] buffer = new byte[BLOCK_FRAMES * 2];
         while (true) {
             if (voices.isEmpty()) {
-                // nothing to play: sleep until the next event
+                // nothing to play: sleep until the next event, which nothing can be playing already
                 voices.add(incoming.take());
             }
             Voice next;
             while ((next = incoming.poll()) != null) {
-                if (voices.size() < MAX_VOICES) {
+                if (voices.size() < MAX_VOICES && !alreadyPlaying(voices, next)) {
                     voices.add(next);
                 }
             }
@@ -442,8 +459,8 @@ public final class SonifyEngine implements Runnable {
         }
     }
 
-    private static Map<String, Clip> clips(String kind, Map<String, String> configured, ClassLoader resources,
-            Soundbank soundbank, UnaryOperator<String> normalize, Predicate<String> valid) {
+    private static Map<String, Clip> clips(String kind, Map<String, String> configured, Sources sources,
+            UnaryOperator<String> normalize, Predicate<String> valid) {
         Map<String, Clip> clips = new HashMap<>();
         for (Map.Entry<String, String> entry : configured.entrySet()) {
             String key = normalize.apply(entry.getKey().trim());
@@ -453,9 +470,16 @@ public final class SonifyEngine implements Runnable {
                 LOG.warnf("Sonify ignores %s: the key is not a status code such as 404 or a class such as 4xx", property);
             } else if (value.equalsIgnoreCase("off")) {
                 clips.put(key, Clip.OFF);
+            } else if (value.regionMatches(true, 0, NOTES, 0, NOTES.length())) {
+                String notes = value.substring(NOTES.length());
+                try {
+                    clips.put(key, Clip.of(notes(notes, sources)));
+                } catch (IOException | IllegalArgumentException e) {
+                    LOG.warnf("Sonify ignores %s: cannot play the notes '%s' (%s)", property, notes.trim(), e.getMessage());
+                }
             } else {
                 try {
-                    clips.put(key, Clip.of(load(value, resources, soundbank)));
+                    clips.put(key, Clip.of(load(value, sources)));
                 } catch (IOException | UnsupportedAudioFileException | IllegalArgumentException e) {
                     LOG.warnf("Sonify ignores %s: cannot read the sound file '%s' (%s)", property, value, e.getMessage());
                 }
@@ -464,20 +488,20 @@ public final class SonifyEngine implements Runnable {
         return clips;
     }
 
+    /** The prefix of notes written as text in the configuration. */
+    private static final String NOTES = "notes:";
+
     static float[] load(String path, ClassLoader resources) throws IOException, UnsupportedAudioFileException {
-        return load(path, resources, null);
+        return load(path, Sources.of(resources));
     }
 
     /**
-     * Reads a sound file as mono samples at the rate of the engine, cut to {@link #MAX_CLIP_SECONDS}. The file is
+     * Reads a sound file as mono samples at the rate of the engine, cut to the longest a sound may last. The file is
      * looked up in the resources of the application first, and then on the file system. A MIDI file is played with the
-     * given soundbank.
-     *
-     * @param soundbank the instruments for a MIDI file, or {@code null} for the default instruments of the JDK
+     * soundbank of the sources.
      */
-    static float[] load(String path, ClassLoader resources, Soundbank soundbank)
-            throws IOException, UnsupportedAudioFileException {
-        URL resource = resources.getResource(path);
+    static float[] load(String path, Sources sources) throws IOException, UnsupportedAudioFileException {
+        URL resource = sources.resources().getResource(path);
         InputStream stream;
         if (resource != null) {
             stream = resource.openStream();
@@ -489,7 +513,7 @@ public final class SonifyEngine implements Runnable {
         BufferedInputStream buffered = new BufferedInputStream(stream);
         if (isMidi(buffered)) {
             try (buffered) {
-                return midi(MidiRenderer.sequence(buffered), soundbank);
+                return midi(MidiRenderer.sequence(buffered), sources);
             }
         }
         try (AudioInputStream source = AudioSystem.getAudioInputStream(buffered)) {
@@ -498,7 +522,7 @@ public final class SonifyEngine implements Runnable {
             AudioFormat pcm = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, format.getSampleRate(), 16, channels,
                     channels * 2, format.getSampleRate(), false);
             try (AudioInputStream converted = AudioSystem.getAudioInputStream(pcm, source)) {
-                int maxFrames = (int) (format.getSampleRate() * MAX_CLIP_SECONDS);
+                int maxFrames = (int) (format.getSampleRate() * sources.maxSeconds());
                 byte[] bytes = converted.readNBytes(maxFrames * pcm.getFrameSize());
                 int frames = bytes.length / pcm.getFrameSize();
                 double[] mono = new double[frames];
@@ -515,10 +539,10 @@ public final class SonifyEngine implements Runnable {
         }
     }
 
-    /** Renders MIDI notes as mono samples at the rate of the engine, cut to {@link #MAX_CLIP_SECONDS}. */
-    static float[] midi(Sequence sequence, Soundbank soundbank) throws IOException {
+    /** Renders MIDI notes as mono samples at the rate of the engine, cut to the longest a sound may last. */
+    static float[] midi(Sequence sequence, Sources sources) throws IOException {
         try {
-            MidiRenderer.Audio audio = MidiRenderer.render(sequence, soundbank, MAX_CLIP_SECONDS);
+            MidiRenderer.Audio audio = MidiRenderer.render(sequence, sources.soundbank(), sources.maxSeconds());
             if (audio.mono().length == 0) {
                 throw new IOException("the MIDI sequence is empty");
             }
@@ -526,6 +550,15 @@ public final class SonifyEngine implements Runnable {
         } catch (MidiUnavailableException e) {
             throw new IOException("no MIDI synthesizer is available: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Plays notes written as text: see {@link Notes}.
+     *
+     * @throws IllegalArgumentException if the text is not notes
+     */
+    static float[] notes(String text, Sources sources) throws IOException {
+        return midi(Notes.parse(text), sources);
     }
 
     /** A standard MIDI file starts with the four bytes "MThd". */
@@ -589,24 +622,71 @@ public final class SonifyEngine implements Runnable {
     record Tone(Wave wave, double frequency, int startMs, int durationMs) {
     }
 
+    /**
+     * Where the sounds of the application come from, and how long they may last.
+     *
+     * @param soundbank the instruments of the MIDI sounds, or {@code null} for the default instruments of the JDK
+     */
+    record Sources(ClassLoader resources, Soundbank soundbank, double maxSeconds) {
+
+        static Sources of(ClassLoader resources) {
+            return new Sources(resources, null, DEFAULT_MAX_SECONDS);
+        }
+    }
+
+    /**
+     * One playing of a sound that the application defined: all the voices it is made of share it. A sound that is still
+     * playing is not started again, so that a long sound does not pile up.
+     */
+    record Playing(Clip clip) {
+    }
+
+    /**
+     * Whether a voice that is about to start belongs to a sound of the application that is still playing, from an earlier
+     * request: then it is dropped.
+     */
+    static boolean alreadyPlaying(List<? extends Voice> playing, Voice next) {
+        Playing group = next.group();
+        if (group == null) {
+            return false;
+        }
+        for (Voice voice : playing) {
+            Playing other = voice.group();
+            if (other != null && other != group && other.clip() == group.clip()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** One sound being played. Only the audio thread touches a voice after it is queued. */
-    private interface Voice {
+    interface Voice {
 
         double next();
 
         boolean done();
+
+        /** The playing of a sound of the application that this voice is part of, or {@code null} for a built-in one. */
+        Playing group();
     }
 
     /** The samples of a sound file. */
-    private static final class ClipVoice implements Voice {
+    static final class ClipVoice implements Voice {
 
         private final float[] samples;
+        private final Playing group;
         private int delay;
         private int position;
 
-        ClipVoice(float[] samples, int delaySamples) {
+        ClipVoice(float[] samples, int delaySamples, Playing group) {
             this.samples = samples;
             this.delay = delaySamples;
+            this.group = group;
+        }
+
+        @Override
+        public Playing group() {
+            return group;
         }
 
         @Override
@@ -637,6 +717,12 @@ public final class SonifyEngine implements Runnable {
         private int delay;
         private int age;
         private long noise = System.nanoTime() | 1;
+        private Playing group;
+
+        @Override
+        public Playing group() {
+            return group;
+        }
 
         SynthVoice(Wave wave, double frequency, double amplitude, double durationMs, int delaySamples,
                 double frequencyDrift) {
