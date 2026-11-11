@@ -7,6 +7,52 @@ h|[.header-title]##Configuration property##
 h|Type
 h|Default
 
+a|icon:lock[title=Fixed at build time] [[quarkus-sonify_quarkus-sonify-production-enabled]] [.property-path]##link:#quarkus-sonify_quarkus-sonify-production-enabled[`+++quarkus.sonify.production.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.sonify.production.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether a production application makes sounds, like in dev mode. This is for applications that run on a machine with someone in front of it, such as a desktop application or a kiosk.
+
+The application must also depend on `io.quarkiverse.sonify:quarkus-sonify-dev`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SONIFY_PRODUCTION_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SONIFY_PRODUCTION_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
+a|icon:lock[title=Fixed at build time] [[quarkus-sonify_quarkus-sonify-test-enabled]] [.property-path]##link:#quarkus-sonify_quarkus-sonify-test-enabled[`+++quarkus.sonify.test.enabled+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.sonify.test.enabled+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+Whether the application makes sounds while its tests run.
+
+The application must also depend on `io.quarkiverse.sonify:quarkus-sonify-dev`.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SONIFY_TEST_ENABLED+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SONIFY_TEST_ENABLED+++`
+endif::add-copy-button-to-env-var[]
+--
+|boolean
+|`+++false+++`
+
 a| [[quarkus-sonify_quarkus-sonify-enabled]] [.property-path]##link:#quarkus-sonify_quarkus-sonify-enabled[`+++quarkus.sonify.enabled+++`]##
 ifdef::add-copy-button-to-config-props[]
 config_property_copy_button:+++quarkus.sonify.enabled+++[]

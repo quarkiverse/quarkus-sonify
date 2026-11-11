@@ -11,16 +11,21 @@ import io.quarkus.arc.ArcContainer;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.UnremovableBeanBuildItem;
 import io.quarkus.core.deployment.service.ServiceRegistrar;
-import io.quarkus.deployment.IsLocalDevelopment;
+import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.BuildSteps;
+import io.quarkus.deployment.builditem.nativeimage.JniRuntimeAccessBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.NativeImageResourcePatternsBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedPackageBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.ServiceProviderBuildItem;
 import io.quarkus.vertx.http.deployment.FilterBuildItem;
 
 /**
- * Everything that makes a sound. These build steps only run in local dev mode, and the classes they wire come from the
- * {@code quarkus-sonify-dev} artifact, which is a conditional dev dependency: a production application has neither.
+ * Everything that makes a sound. These build steps run in local dev mode, and in a production application or tests that
+ * opt in (see {@link SonifyActive}). The classes they wire come from the {@code quarkus-sonify-dev} artifact, which is a
+ * conditional dev dependency: outside of dev mode, an application only has it when it depends on it.
  */
-@BuildSteps(onlyIf = IsLocalDevelopment.class)
+@BuildSteps(onlyIf = SonifyActive.class)
 class SonifyDevProcessor {
 
     /** Runs before authentication and CORS, so that rejected requests are heard too. */
@@ -44,7 +49,7 @@ class SonifyDevProcessor {
         return new FilterBuildItem(new SonifyRequestHandler(), FILTER_PRIORITY);
     }
 
-    /** Nothing injects a customizer, so it would be removed as unused. Outside of dev mode, that is what happens. */
+    /** Nothing injects a customizer, so it would be removed as unused. Where Sonify is not active, that is what happens. */
     @BuildStep
     UnremovableBeanBuildItem customizers() {
         return UnremovableBeanBuildItem.beanTypes(SonifyCustomizer.class);
@@ -53,5 +58,60 @@ class SonifyDevProcessor {
     @BuildStep
     AdditionalBeanBuildItem customSounds() {
         return new AdditionalBeanBuildItem(PlaySound.class, PlaySoundInterceptor.class, DevSoundPlayer.class);
+    }
+
+    /**
+     * What the audio code of the JDK needs in a native executable: its native library calls back into these classes, and
+     * it finds the audio devices and the sound file readers through the service loader. Outside of a native build, these
+     * build items are not used.
+     */
+    @BuildStep
+    JniRuntimeAccessBuildItem nativeAudioCallbacks() {
+        return new JniRuntimeAccessBuildItem(true, true, false,
+                "com.sun.media.sound.DirectAudioDevice",
+                "com.sun.media.sound.DirectAudioDeviceProvider$DirectAudioDeviceInfo",
+                "com.sun.media.sound.PortMixerProvider$PortMixerInfo",
+                "java.lang.Boolean");
+    }
+
+    /**
+     * The audio classes of the JDK load their native library when they are initialized: that must happen in the
+     * executable, not during the build.
+     */
+    @BuildStep
+    RuntimeInitializedPackageBuildItem nativeAudioAtRunTime() {
+        return new RuntimeInitializedPackageBuildItem("com.sun.media.sound");
+    }
+
+    /**
+     * The sound files of the configuration are resources of the application, which a native executable only contains
+     * when they are listed. The configuration is read at run time and may name any file, so all the WAV files of the
+     * application are included.
+     */
+    @BuildStep
+    NativeImageResourcePatternsBuildItem nativeSoundFiles() {
+        return NativeImageResourcePatternsBuildItem.builder().includeGlob("**/*.wav").build();
+    }
+
+    /**
+     * Quarkus does not let the native image find service providers by itself, so the providers of the JDK that play
+     * sounds, read sound files and convert their format are listed here. The MIDI providers are left out.
+     */
+    @BuildStep
+    void nativeAudioProviders(BuildProducer<ServiceProviderBuildItem> providers) {
+        providers.produce(new ServiceProviderBuildItem("javax.sound.sampled.spi.MixerProvider",
+                "com.sun.media.sound.DirectAudioDeviceProvider",
+                "com.sun.media.sound.PortMixerProvider"));
+        providers.produce(new ServiceProviderBuildItem("javax.sound.sampled.spi.AudioFileReader",
+                "com.sun.media.sound.AiffFileReader",
+                "com.sun.media.sound.AuFileReader",
+                "com.sun.media.sound.WaveFileReader",
+                "com.sun.media.sound.WaveFloatFileReader",
+                "com.sun.media.sound.WaveExtensibleFileReader"));
+        providers.produce(new ServiceProviderBuildItem("javax.sound.sampled.spi.FormatConversionProvider",
+                "com.sun.media.sound.AlawCodec",
+                "com.sun.media.sound.AudioFloatFormatConverter",
+                "com.sun.media.sound.PCMtoPCMCodec",
+                "com.sun.media.sound.UlawCodec"));
     }
 }

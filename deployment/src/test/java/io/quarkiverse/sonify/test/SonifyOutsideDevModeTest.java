@@ -17,7 +17,8 @@ import io.quarkus.test.QuarkusExtensionTest;
 import io.restassured.RestAssured;
 
 /**
- * Outside of dev mode (here: in a test, the same goes for production), the API is there and does nothing.
+ * Outside of dev mode (here: in a test, the same goes for production) and without the opt-in, the API is there and
+ * does nothing.
  */
 public class SonifyOutsideDevModeTest {
 

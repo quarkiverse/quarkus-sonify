@@ -17,15 +17,17 @@ A machine without an audio output gets one log line and silence.
 NOTE: This extension is just for fun. It may well have no serious use case at all.
 
 [#dev-mode-only]
-== Dev mode only
+== Dev mode by default
 
-Sonify only makes sounds in dev mode.
+By default, Sonify only makes sounds in dev mode.
 
 Everything that makes a sound lives in a separate artifact, `quarkus-sonify-dev`, which Quarkus only adds to the application in dev mode.
 A production application contains the small API of the extension and nothing else: `@PlaySound` and `SoundPlayer` do nothing there, the `quarkus.sonify.*` properties are ignored, and the audio code is not packaged.
 The same goes for tests.
 
 So there is no need to remove the extension, its annotations or its configuration before going to production.
+
+An application that runs with someone in front of it, such as a desktop application, can xref:outside-dev-mode.adoc[opt in to sounds in production and in tests].
 
 == Installation
 

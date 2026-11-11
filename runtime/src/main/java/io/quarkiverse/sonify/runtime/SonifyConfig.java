@@ -11,8 +11,8 @@ import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 
 /**
- * Sonify only makes sounds in dev mode. These properties are read when the application starts in dev mode, and again
- * on every live reload. A production application ignores them.
+ * These properties are read when the application starts, and in dev mode again on every live reload. Where Sonify
+ * makes no sound (outside of dev mode, unless the application opts in), they are ignored.
  */
 @ConfigMapping(prefix = "quarkus.sonify")
 @ConfigRoot(phase = ConfigPhase.RUN_TIME)

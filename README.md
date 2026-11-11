@@ -7,8 +7,9 @@ Hear what your Quarkus application is doing in dev mode.
 Sonify plays a short sound on the machine that runs the application: one when an HTTP request arrives (by method), one
 when its response is sent (by status code), and any custom sound you ask for.
 
-**Dev mode only.** Everything that makes a sound lives in a dev-only artifact that is never part of a production
-application. In production and in tests the API does nothing.
+**Dev mode by default.** Everything that makes a sound lives in a dev-only artifact that is not part of a production
+application. In production and in tests the API does nothing, unless the application
+[opts in](#production-and-tests).
 
 > **This is just for fun.** It may well have no serious use case at all. Nobody should feel productive
 > because of it.
@@ -41,7 +42,7 @@ implementation("io.quarkiverse.sonify:quarkus-sonify:$quarkusSonifyVersion")
 Replace the version placeholder with the latest release from
 [Maven Central](https://central.sonatype.com/artifact/io.quarkiverse.sonify/quarkus-sonify).
 
-There is nothing to remove before going to production: the extension only makes sounds in dev mode.
+There is nothing to remove before going to production: by default, the extension only makes sounds in dev mode.
 
 ## Run the demo
 
@@ -143,6 +144,29 @@ public class MySounds implements SonifyCustomizer {
 
 A `quarkus.sonify.*` property for the same sound wins over the customizer.
 
+## Production and tests
+
+An application that runs with someone in front of it, such as a desktop application or a kiosk, can make sounds in
+production too. It takes two things, and either one alone does nothing:
+
+```xml
+<dependency>
+    <groupId>io.quarkiverse.sonify</groupId>
+    <artifactId>quarkus-sonify-dev</artifactId>
+    <version>${quarkus-sonify.version}</version>
+</dependency>
+```
+
+```properties
+quarkus.sonify.production.enabled=true
+# and, for the tests of the application
+quarkus.sonify.test.enabled=true
+```
+
+This works in a native executable too. On Windows, ship `jsound.dll` next to the executable (the build puts it there),
+and on Linux, the machine needs ALSA (`libasound.so.2`). See the
+[documentation](docs/modules/ROOT/pages/outside-dev-mode.adoc).
+
 ## Modules
 
 | Module | Artifact | Content |
@@ -151,13 +175,14 @@ A `quarkus.sonify.*` property for the same sound wins over the customizer.
 | `runtime-dev` | `quarkus-sonify-dev` | the synthesizer and its hooks, a conditional dev dependency |
 | `deployment` | `quarkus-sonify-deployment` | the build steps |
 | `integration-tests` | `quarkus-sonify-integration-tests` | checks that a packaged application is silent and has no audio code |
+| `integration-tests-production` | `quarkus-sonify-integration-tests-production` | checks that a packaged application that opts in makes sounds, native included |
 | `demo` | `quarkus-sonify-demo` | a page with a link for every case |
 | `docs` | `quarkus-sonify-docs` | the documentation |
 
 ## Documentation
 
-The documentation is in [`docs/`](docs/modules/ROOT/pages/index.adoc): getting started, custom sounds and the
-configuration reference.
+The documentation is in [`docs/`](docs/modules/ROOT/pages/index.adoc): getting started, custom sounds, production and
+tests, and the configuration reference.
 
 ## Tests
 
@@ -165,8 +190,8 @@ configuration reference.
 mvn install
 ```
 
-The tests are silent and need no audio output: they check that every event reaches the synthesizer in dev mode, and
-that nothing does anywhere else. What the sounds actually sound like is not tested.
+The tests are silent and need no audio output: they check that every event reaches the synthesizer in dev mode and in
+an application that opts in, and that nothing does anywhere else. What the sounds actually sound like is not tested.
 
 ## Status
 

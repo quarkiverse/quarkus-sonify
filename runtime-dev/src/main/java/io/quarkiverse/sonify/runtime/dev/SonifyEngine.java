@@ -310,18 +310,35 @@ public final class SonifyEngine implements Runnable {
 
     @Override
     public void run() {
+        ensureJavaHome();
         AudioFormat format = new AudioFormat(SAMPLE_RATE, 16, 1, true, false);
         try (SourceDataLine line = AudioSystem.getSourceDataLine(format)) {
             line.open(format, BLOCK_FRAMES * 2 * 8);
             line.start();
             LOG.infof("Sonify is playing on the default audio output (%s)", line.getLineInfo());
             mix(line);
-        } catch (LineUnavailableException | IllegalArgumentException | SecurityException e) {
+        } catch (LineUnavailableException | IllegalArgumentException | SecurityException | LinkageError e) {
+            // a LinkageError: a native executable without the audio library of the JDK, or Linux without ALSA
             unavailable = true;
             incoming.clear();
             LOG.warnf("Sonify is silent: no audio output is available (%s)", e.getMessage());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * The audio code of the JDK reads its optional {@code conf/sound.properties} from {@code java.home}, and fails when
+     * the property is not set at all, which is the case in a native executable. The folder of the executable is as good
+     * a home as any: a missing file is ignored.
+     */
+    private static void ensureJavaHome() {
+        if (System.getProperty("java.home") == null) {
+            String home = ProcessHandle.current().info().command()
+                    .map(command -> Path.of(command).toAbsolutePath().getParent())
+                    .map(Path::toString)
+                    .orElse(".");
+            System.setProperty("java.home", home);
         }
     }
 
