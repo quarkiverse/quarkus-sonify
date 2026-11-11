@@ -5,7 +5,7 @@ import jakarta.inject.Singleton;
 import io.quarkiverse.sonify.SoundPlayer;
 
 /**
- * The {@link SoundPlayer} of an application running in dev mode.
+ * The {@link SoundPlayer} of an application that makes sounds: in dev mode, or in production or tests that opt in.
  */
 @Singleton
 public class DevSoundPlayer implements SoundPlayer {

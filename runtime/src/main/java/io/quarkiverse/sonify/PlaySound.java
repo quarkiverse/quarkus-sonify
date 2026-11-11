@@ -15,8 +15,8 @@ import jakarta.interceptor.InterceptorBinding;
  * The sound is looked up by its name: {@code quarkus.sonify.sound."<name>"} can point to a WAV file or be {@code off}.
  * A name without configuration gets a short sound of its own, derived from the name.
  * <p>
- * This only does something in dev mode. In a production application and in tests there is no interceptor behind the
- * annotation, so the method is not intercepted at all.
+ * This only does something in dev mode, unless the application opts in to sounds in production or in tests. Otherwise
+ * there is no interceptor behind the annotation, so the method is not intercepted at all.
  */
 @InterceptorBinding
 @Target({ ElementType.METHOD, ElementType.TYPE })

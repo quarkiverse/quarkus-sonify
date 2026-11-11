@@ -4,8 +4,8 @@ include::./includes/attributes.adoc[]
 
 Besides requests and responses, the application can ask for a sound of its own, by name.
 
-Like everything else in Sonify, this xref:index.adoc#dev-mode-only[only happens in dev mode].
-In production and in tests the annotation and the injected object are there and do nothing.
+Like everything else in Sonify, this xref:index.adoc#dev-mode-only[only happens in dev mode] by default.
+In production and in tests the annotation and the injected object are there and do nothing, unless the application xref:outside-dev-mode.adoc[opts in].
 
 == Playing a sound
 
@@ -125,9 +125,9 @@ A sound is defined in one of four ways:
 
 A sound lasts two seconds at most: a tone must end within them, and files and samples are cut.
 
-The customizer is called when the application starts in dev mode, and again on every live reload.
+The customizer is called when the application starts, and in dev mode again on every live reload.
 If several beans implement `SonifyCustomizer`, all of them are called.
 
 A `quarkus.sonify.*` property for the same sound wins over the customizer, so that a sound defined in code can still be changed or silenced from the configuration, for example in a local `.env` file.
 
-Outside of dev mode the customizer is never called, and Quarkus removes the bean as unused, unless the application itself injects it.
+Where Sonify makes no sound (outside of dev mode, unless the application opts in), the customizer is never called, and Quarkus removes the bean as unused, unless the application itself injects it.

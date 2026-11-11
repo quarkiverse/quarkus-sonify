@@ -105,6 +105,7 @@
             </activation>
             <modules>
                 <module>integration-tests</module>
+                <module>integration-tests-production</module>
                 <!-- an application to try the sounds by hand, never released -->
                 <module>demo</module>
             </modules>

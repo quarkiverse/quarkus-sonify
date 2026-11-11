@@ -4,7 +4,7 @@ package io.quarkiverse.sonify;
  * Plays a sound from anywhere in the application: inject it and call {@link #play(String)}.
  * <p>
  * In dev mode the sound comes out of the machine that runs the application. In a production application and in tests
- * the injected bean does nothing, so calls can stay in the code.
+ * the injected bean does nothing, so calls can stay in the code, unless the application opts in to sounds there.
  */
 public interface SoundPlayer {
 

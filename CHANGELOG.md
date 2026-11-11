@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- Sounds in production and in tests, off by default: an application opts in with a dependency on
+  `quarkus-sonify-dev` and the build-time property `quarkus.sonify.production.enabled` or
+  `quarkus.sonify.test.enabled`. Either one alone does nothing, and the build logs a warning.
+  This also works in a native executable, which plays sounds through the audio library of the JDK:
+  `jsound.dll` next to the executable on Windows, and ALSA on Linux.
+
 ### Changed
 
 - Quarkus 4: built with Quarkus 4.0.0.Beta3, and needs Java 21 or later. The engine is configured

@@ -19,7 +19,8 @@ package io.quarkiverse.sonify;
  * A {@code quarkus.sonify.*} property for the same sound wins over what the customizer says, so that a sound can be
  * changed or silenced without touching the code.
  * <p>
- * Outside of dev mode nothing calls the customizer, and the bean is removed from the application as unused.
+ * Where Sonify makes no sound (outside of dev mode, unless the application opts in), nothing calls the customizer, and
+ * the bean is removed from the application as unused.
  */
 public interface SonifyCustomizer {
 

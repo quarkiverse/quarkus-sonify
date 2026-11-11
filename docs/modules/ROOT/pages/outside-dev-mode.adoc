@@ -1,0 +1,66 @@
+= Production and tests
+
+include::./includes/attributes.adoc[]
+
+By default, Sonify only makes sounds in dev mode, and a production application does not even contain the code that makes them.
+
+Some applications run with someone in front of them: a desktop application, a kiosk, a demo booth, a board on a desk.
+They can opt in to sounds in production, and any application can opt in to sounds in its tests.
+
+== Opting in
+
+It takes two things, and either one alone does nothing.
+
+The code that makes sounds, as a dependency of the application:
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+    <groupId>io.quarkiverse.sonify</groupId>
+    <artifactId>quarkus-sonify-dev</artifactId>
+    <version>{project-version}</version>
+</dependency>
+----
+
+And a build-time property for each place where the application should make sounds:
+
+[source,properties]
+----
+# the production application
+quarkus.sonify.production.enabled=true
+# the tests of the application
+quarkus.sonify.test.enabled=true
+----
+
+When only one of the two is there, the build logs a warning that says which one is missing.
+A dependency without `quarkus.sonify.test.enabled` is fine in tests: the dependency is there for production.
+
+Everything else works as in dev mode: the same sounds, the same configuration, `@PlaySound`, `SoundPlayer` and `SonifyCustomizer`.
+The start chime plays once when the application starts.
+
+== On a machine without speakers
+
+A server usually has no audio output.
+There, Sonify logs one line and stays silent, and the application runs as usual.
+
+To keep a production build that has opted in silent on a given machine, set the runtime property:
+
+[source,properties]
+----
+quarkus.sonify.enabled=false
+----
+
+== Native executables
+
+Sonify works in a native executable too, with two things to know.
+
+The JDK plays sounds through a native library, which the executable loads when it starts playing.
+The build puts it next to the executable (`jsound.dll` on Windows, `libjsound.so` on Linux): ship it with the executable.
+On Linux, that library needs ALSA on the machine: `libasound.so.2`, from the `alsa-lib` or `libasound2` package. Minimal container images do not have it.
+
+Without them, the application is silent, with one log line.
+
+Sound files that are resources of the application are included in the executable: Sonify includes all the WAV files of the application, since the configuration that names them is read at run time.
+Sound files on the file system work as in the JVM.
+
+NOTE: Native support was tested on Windows and Linux. macOS was not tested.
