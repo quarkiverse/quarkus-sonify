@@ -17,6 +17,11 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 @QuarkusIntegrationTest
 public class ProductionResourceIT extends ProductionResourceTest {
 
+    @Override
+    protected boolean soundfontExpected() {
+        return true;
+    }
+
     @Test
     public void theDevArtifactIsPackaged() throws IOException {
         Path libraries = Path.of("target", "quarkus-app", "lib", "main");

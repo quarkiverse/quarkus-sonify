@@ -180,7 +180,17 @@ A MIDI note plays the instrument of the soundfont with its program number, so a 
 The soundfont is read once, and again only when its file changes: a large soundfont does not slow down live reloads.
 
 Playing MIDI with a soundfont relies on an interface of the JDK synthesizer that the JDK does not export.
-The extension asks Quarkus to export it to the application, in dev mode, in tests and in a production application that opts in, so there is nothing to set up.
-If the JDK ever refuses it, Sonify logs a warning and plays MIDI with the default instruments.
+The extension asks Quarkus to export it to the application, so there is nothing to set up, with one exception: on Java 21 to 24, Quarkus cannot do it in dev mode and in tests.
+There, start the JVM with the export yourself:
+
+[source,shell]
+----
+./mvnw quarkus:dev -Djvm.args="--add-exports java.desktop/com.sun.media.sound=ALL-UNNAMED"
+----
+
+For tests, add the same option to the `argLine` of Surefire.
+A packaged application and a native executable have the export on every Java version.
+
+When the export is missing, Sonify logs a warning and plays MIDI with the default instruments.
 
 Where Sonify makes no sound (outside of dev mode, unless the application opts in), the customizer is never called, and Quarkus removes the bean as unused, unless the application itself injects it.

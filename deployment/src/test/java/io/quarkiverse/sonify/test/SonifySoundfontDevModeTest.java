@@ -24,14 +24,15 @@ import io.restassured.RestAssured;
 
 /**
  * In dev mode, MIDI sounds are played with the soundfont of the configuration: Quarkus exports the package of the JDK
- * synthesizer that this needs.
+ * synthesizer that this needs, from Java 25 on (see {@link Soundfonts}).
  */
 public class SonifySoundfontDevModeTest {
 
     @RegisterExtension
     static final QuarkusDevModeTest devMode = new QuarkusDevModeTest()
             .setArchiveProducer(() -> ShrinkWrap.create(JavaArchive.class)
-                    .addClasses(SoundsResource.class, OrderService.class, TestSounds.class, CountsResource.class)
+                    .addClasses(SoundsResource.class, OrderService.class, TestSounds.class, CountsResource.class,
+                            Soundfonts.class)
                     .addAsResource("square.sf2")
                     .addAsResource(new ByteArrayAsset(arpeggio()), "arpeggio.mid")
                     .addAsResource(new StringAsset("""
@@ -42,14 +43,14 @@ public class SonifySoundfontDevModeTest {
 
     @Test
     public void midiIsPlayedWithTheSoundfont() {
-        RestAssured.get("/q/sonify-test/soundfont").then().statusCode(200).body(is("true"));
+        RestAssured.get("/q/sonify-test/soundfont").then().statusCode(200).body(is(Soundfonts.expected()));
     }
 
     @Test
     public void theSoundfontSurvivesALiveReload() {
         devMode.modifyResourceFile("application.properties", properties -> properties + "quarkus.sonify.volume=0.3\n");
 
-        RestAssured.get("/q/sonify-test/soundfont").then().statusCode(200).body(is("true"));
+        RestAssured.get("/q/sonify-test/soundfont").then().statusCode(200).body(is(Soundfonts.expected()));
     }
 
     private static byte[] arpeggio() {

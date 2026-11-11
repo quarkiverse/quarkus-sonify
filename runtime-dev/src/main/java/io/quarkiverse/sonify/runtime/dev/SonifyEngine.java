@@ -150,8 +150,8 @@ public final class SonifyEngine implements Runnable {
         }
         if (!MidiRenderer.canUseSoundbanks()) {
             LOG.warnf("Sonify plays MIDI with the default instruments of the JDK, not with the soundfont '%s': the JDK "
-                    + "does not let Sonify render it (the package com.sun.media.sound of the module java.desktop is "
-                    + "not exported to it)", path);
+                    + "does not let Sonify render it. On Java 21 to 24, Quarkus cannot export it in dev mode and tests: "
+                    + "start the JVM with --add-exports java.desktop/com.sun.media.sound=ALL-UNNAMED", path);
             return null;
         }
         usesSoundfont = true;
