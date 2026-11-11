@@ -93,15 +93,19 @@ quarkus.sonify.response-gap=350ms
 # taps or bells
 quarkus.sonify.theme=taps
 
-# a sound file (WAV or MIDI) or "off", per HTTP method, per status code or class, and per custom sound
+# a sound file (WAV or MIDI), notes, or "off", per HTTP method, per status code or class, and per custom sound
 quarkus.sonify.method.options=off
 quarkus.sonify.status."418"=sounds/whistle.wav
 quarkus.sonify.status."202"=sounds/arpeggio.mid
+quarkus.sonify.status."201"=notes:[tempo=160] C5/16 E5/16 G5/16 C6/8
 quarkus.sonify.status."5xx"=off
 quarkus.sonify.sound."order-placed"=sounds/coin.wav
 
-# the instruments of the MIDI sounds: a SoundFont 2 (.sf2) or DLS file
+# the instruments of the MIDI sounds and notes: a SoundFont 2 (.sf2) or DLS file
 quarkus.sonify.soundfont=sounds/piano.sf2
+
+# how long a sound may last, up to 10s: a sound that is still playing is not started again
+quarkus.sonify.max-sound-length=2s
 ```
 
 Files are looked up in the resources of the application first, then on the file system, and are cut at two seconds.
@@ -142,8 +146,9 @@ public class MySounds implements SonifyCustomizer {
         sounds.status(404).off();
         sounds.statusClass(5).file("sounds/alarm.wav");
         sounds.method("POST").samples(myPcm, 44100);
-        // notes, as a javax.sound.midi.Sequence
+        // notes, as a javax.sound.midi.Sequence or as text
         sounds.status(204).midi(chord);
+        sounds.status(201).notes("[tempo=160] C5/16 E5/16 G5/16 C6/8");
     }
 }
 ```

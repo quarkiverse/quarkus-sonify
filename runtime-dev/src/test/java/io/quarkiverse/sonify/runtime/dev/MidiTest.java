@@ -17,6 +17,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import io.quarkiverse.sonify.runtime.dev.MidiRenderer.TimedMessage;
 import io.quarkiverse.sonify.runtime.dev.SonifyEngine.Clip;
+import io.quarkiverse.sonify.runtime.dev.SonifyEngine.Sources;
 
 /**
  * MIDI files, MIDI sequences and soundfonts. These tests run with the package of the JDK synthesizer exported, as
@@ -25,7 +26,7 @@ import io.quarkiverse.sonify.runtime.dev.SonifyEngine.Clip;
 class MidiTest {
 
     private static final ClassLoader RESOURCES = MidiTest.class.getClassLoader();
-    private static final int MAX_SAMPLES = (int) (44100 * SonifyEngine.MAX_CLIP_SECONDS);
+    private static final int MAX_SAMPLES = (int) (44100 * SonifyEngine.DEFAULT_MAX_SECONDS);
 
     private final SonifyEngine engine = SonifyEngine.get();
 
@@ -56,7 +57,7 @@ class MidiTest {
         track.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_ON, 0, 72, 100), 120 * 20));
         track.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_OFF, 0, 72, 0), 120 * 21));
 
-        assertThat(SonifyEngine.midi(sequence, null)).hasSize(MAX_SAMPLES);
+        assertThat(SonifyEngine.midi(sequence, Sources.of(RESOURCES))).hasSize(MAX_SAMPLES);
     }
 
     @Test
@@ -67,8 +68,9 @@ class MidiTest {
         assertThat(engine.usesSoundfont()).isTrue();
 
         Soundbank square = MidiSystem.getSoundbank(RESOURCES.getResource("square.sf2"));
-        float[] withSoundfont = SonifyEngine.midi(Midi.arpeggio(), square);
-        float[] withDefaultInstruments = SonifyEngine.midi(Midi.arpeggio(), null);
+        float[] withSoundfont = SonifyEngine.midi(Midi.arpeggio(),
+                new Sources(RESOURCES, square, SonifyEngine.DEFAULT_MAX_SECONDS));
+        float[] withDefaultInstruments = SonifyEngine.midi(Midi.arpeggio(), Sources.of(RESOURCES));
 
         assertThat(Midi.peak(withSoundfont)).isGreaterThan(0.01f);
         assertThat(Midi.peak(withDefaultInstruments)).isGreaterThan(0.01f);
@@ -85,7 +87,7 @@ class MidiTest {
         engine.configure(config, RESOURCES, List.of(sounds -> sounds.sound("from-code").midi(notes)));
 
         Soundbank square = MidiSystem.getSoundbank(RESOURCES.getResource("square.sf2"));
-        float[] expected = SonifyEngine.midi(Midi.arpeggio(), square);
+        float[] expected = SonifyEngine.midi(Midi.arpeggio(), new Sources(RESOURCES, square, SonifyEngine.DEFAULT_MAX_SECONDS));
         Clip fromCode = engine.settings().customs().get("from-code");
         Clip fromFile = engine.settings().customs().get("from-file");
         assertThat(fromCode.samples()).isEqualTo(expected);
@@ -101,7 +103,8 @@ class MidiTest {
         engine.configure(config, RESOURCES, List.of(sounds -> sounds.sound("notes").midi(notes)));
 
         assertThat(engine.usesSoundfont()).isFalse();
-        assertThat(engine.settings().customs().get("notes").samples()).isEqualTo(SonifyEngine.midi(Midi.arpeggio(), null));
+        assertThat(engine.settings().customs().get("notes").samples())
+                .isEqualTo(SonifyEngine.midi(Midi.arpeggio(), Sources.of(RESOURCES)));
     }
 
     @Test

@@ -116,6 +116,29 @@ endif::add-copy-button-to-env-var[]
 |link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-quarkus-sonify_quarkus-sonify[icon:question-circle[title=More information about the Duration format]]
 |`+++350MS+++`
 
+a| [[quarkus-sonify_quarkus-sonify-max-sound-length]] [.property-path]##link:#quarkus-sonify_quarkus-sonify-max-sound-length[`+++quarkus.sonify.max-sound-length+++`]##
+ifdef::add-copy-button-to-config-props[]
+config_property_copy_button:+++quarkus.sonify.max-sound-length+++[]
+endif::add-copy-button-to-config-props[]
+
+
+[.description]
+--
+How long a sound may last: sound files, computed audio, tones, MIDI and notes are cut after it. Up to 10 seconds.
+
+A sound that is still playing is not started again, so a long sound does not pile up when many requests ask for it.
+
+
+ifdef::add-copy-button-to-env-var[]
+Environment variable: env_var_with_copy_button:+++QUARKUS_SONIFY_MAX_SOUND_LENGTH+++[]
+endif::add-copy-button-to-env-var[]
+ifndef::add-copy-button-to-env-var[]
+Environment variable: `+++QUARKUS_SONIFY_MAX_SOUND_LENGTH+++`
+endif::add-copy-button-to-env-var[]
+--
+|link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Duration.html[Duration] link:#duration-note-anchor-quarkus-sonify_quarkus-sonify[icon:question-circle[title=More information about the Duration format]]
+|`+++2S+++`
+
 a| [[quarkus-sonify_quarkus-sonify-theme]] [.property-path]##link:#quarkus-sonify_quarkus-sonify-theme[`+++quarkus.sonify.theme+++`]##
 ifdef::add-copy-button-to-config-props[]
 config_property_copy_button:+++quarkus.sonify.theme+++[]
@@ -145,7 +168,7 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-The sound of a request with this HTTP method, instead of the sound of the theme: the path of a WAV file, or `off`.
+The sound of a request with this HTTP method, instead of the sound of the theme: the path of a WAV or MIDI file, notes after `notes:` (such as `notes:C5/8 E5/8 G5/4`), or `off`.
 
 A file is looked up in the resources of the application first, and then on the file system. At most its first two seconds are played.
 
@@ -168,7 +191,7 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-The sound of a response with this status, instead of the sound of the theme: the path of a WAV file, or `off`.
+The sound of a response with this status, instead of the sound of the theme: the path of a WAV or MIDI file, notes after `notes:`, or `off`.
 
 The key is either a status code (`"404"`) or a whole class of them (`"4xx"`). A status code wins over its class.
 
@@ -191,7 +214,7 @@ endif::add-copy-button-to-config-props[]
 
 [.description]
 --
-The sound with this name, as used by `@PlaySound` and `SoundPlayer`: the path of a WAV file, or `off`. A name that is not configured gets a short sound of its own, derived from the name.
+The sound with this name, as used by `@PlaySound` and `SoundPlayer`: the path of a WAV or MIDI file, notes after `notes:`, or `off`. A name that is not configured gets a short sound of its own, derived from the name.
 
 
 ifdef::add-copy-button-to-env-var[]

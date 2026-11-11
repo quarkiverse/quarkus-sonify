@@ -104,7 +104,7 @@ public class MySounds implements SonifyCustomizer {
 }
 ----
 
-A sound is defined in one of five ways:
+A sound is defined in one of six ways:
 
 [cols="1,3"]
 |===
@@ -119,6 +119,9 @@ A sound is defined in one of five ways:
 |`midi(sequence)`
 |Notes, as a MIDI sequence: see <<midi>>.
 
+|`notes(text)`
+|Notes, written as text: see <<notes>>.
+
 |`samples(samples, sampleRate)`
 |Computed audio.
 
@@ -126,7 +129,8 @@ A sound is defined in one of five ways:
 |Silence.
 |===
 
-A sound lasts two seconds at most: a tone must end within them, and files, samples and MIDI are cut.
+A sound lasts two seconds at most, or what `quarkus.sonify.max-sound-length` says, up to 10 seconds: a tone must end within that time, and files, samples, MIDI and notes are cut.
+A sound that is still playing is not started again, so a long sound does not pile up when many requests ask for it.
 
 The customizer is called when the application starts, and in dev mode again on every live reload.
 If several beans implement `SonifyCustomizer`, all of them are called.
@@ -160,7 +164,49 @@ for (int note : new int[] { 65, 69, 72 }) {
 sounds.status(204).midi(sequence);
 ----
 
-Like any other sound, MIDI is cut at two seconds.
+Like any other sound, MIDI is cut at two seconds, or at `quarkus.sonify.max-sound-length`.
+
+[#notes]
+=== Notes as text
+
+Notes can also be written as text, in the configuration after `notes:`, or in code with `notes(text)`:
+
+[source,properties]
+----
+quarkus.sonify.status."201"=notes:C5/16 E5/16 G5/16 C6/8
+quarkus.sonify.status."5xx"=notes:[program=57, tempo=90] G3/4 D3/2
+----
+
+[source,java]
+----
+sounds.sound("shipped").notes("[tempo=140] C5/8 E5/8 G5+C6/4.");
+----
+
+[cols="1,3"]
+|===
+|Text |Meaning
+
+|`C4`, `F#5`, `Bb3`
+|A note: a letter, an optional sharp (`#`) or flat (`b`), and an octave. `C4` is middle C, `A4` is 440 Hz.
+
+|`/1`, `/2`, `/4` ... `/64`
+|A duration, after a note: a whole note, a half note, a quarter note, down to a sixty-fourth. Without it, a note lasts as long as the one before, and the first one a quarter note.
+
+|`/4.`
+|A dot makes a duration half as long again.
+
+|`C4+E4+G4/2`
+|A chord: notes played together.
+
+|`r/8`
+|A rest.
+
+|`[program=57, tempo=90, velocity=100]`
+|Settings, first and all optional: the General MIDI instrument (0, the piano, by default), the quarter notes per minute (120 by default), and how hard the notes are played, from 1 to 127 (100 by default).
+|===
+
+Notes are played as MIDI, with the instruments of the soundfont if there is one.
+A mistake in the text of the configuration is logged with what is wrong and where, and the sound is ignored; in code, `notes(text)` throws an `IllegalArgumentException` with the same message.
 
 === Instruments and soundfonts
 
