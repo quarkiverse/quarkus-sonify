@@ -23,7 +23,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Quarkus 4: built with Quarkus 4.0.0.Beta3, and needs Java 21 or later. The engine is configured
+- Quarkus 4: built with Quarkus 4.0.0.CR1, and needs Java 21 or later. The engine is configured
   at startup by a service (`ServiceRegistrar`) instead of a bytecode recorder:
   `io.quarkiverse.sonify.runtime.dev.SonifyRecorder` is replaced by
   `io.quarkiverse.sonify.runtime.dev.SonifyStartup`.
