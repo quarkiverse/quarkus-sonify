@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 1.0.0 - 2026-11-19
 
 ### Added
 
@@ -23,6 +23,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- The extension is now stable.
 - Quarkus 4: built with Quarkus 4.0.0, and needs Java 21 or later. The engine is configured
   at startup by a service (`ServiceRegistrar`) instead of a bytecode recorder:
   `io.quarkiverse.sonify.runtime.dev.SonifyRecorder` is replaced by
