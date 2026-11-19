@@ -7,4 +7,4 @@ metadata:
     - dev-mode
   categories:
     - "miscellaneous"
-  status: "experimental"
+  status: "stable"
